@@ -50,24 +50,32 @@
                         <div class="form-group">
                             <label>Materias</label>
                             <select multiple class="form-control" name="Subjects">
-                                @foreach (var subject in ViewBag.Subjects)
+                                @foreach (var subject in ViewBag.Subjects as List<SchoolManager.Models.Subject>)
                                 {
-                                    <option value="@subject.Value">@subject.Text</option>
+                                    <option value="@subject.Id">@subject.Name</option>
                                 }
                             </select>
+                            <div id="newSubjectsContainer" class="mt-2"></div>
+                            <button type="button" class="btn btn-sm btn-secondary mt-1" data-bs-toggle="modal" data-bs-target="#subjectModal">
+                                Gestionar Materias
+                            </button>
                         </div>
                     </div>
+
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Grupos</label>
                             <select multiple class="form-control" name="Groups">
-                                @foreach (var group in ViewBag.Groups)
+                                @foreach (var group in ViewBag.Groups as List<SchoolManager.Models.Group>)
                                 {
-                                    <option value="@group.Value">@group.Text</option>
+                                    <option value="@group.Id">@group.Name</option>
                                 }
                             </select>
+                            <div id="newGroupsContainer" class="mt-2"></div>
+                            <button type="button" class="btn btn-sm btn-secondary mt-1" onclick="addNewGroup()">+ Agregar nuevo grupo</button>
                         </div>
                     </div>
+
                 </div>
 
                 <button type="submit" class="btn btn-primary">
@@ -131,6 +139,8 @@
         </div>
     </div>
 </div>
+@await Html.PartialAsync("~/Views/Shared/Partials/_SubjectsPartial.cshtml")
+
 @section Scripts {
     <script>
         $(document).ready(function () {
@@ -141,5 +151,26 @@
                 });
             });
         });
+
+        function addNewSubject() {
+            let container = document.getElementById("newSubjectsContainer");
+            let input = document.createElement("input");
+            input.type = "text";
+            input.name = "NewSubjects";
+            input.className = "form-control mb-1";
+            input.placeholder = "Nombre de nueva materia";
+            container.appendChild(input);
+        }
+
+        function addNewGroup() {
+            let container = document.getElementById("newGroupsContainer");
+            let input = document.createElement("input");
+            input.type = "text";
+            input.name = "NewGroups";
+            input.className = "form-control mb-1";
+            input.placeholder = "Nombre de nuevo grupo";
+            container.appendChild(input);
+        }
     </script>
 }
+

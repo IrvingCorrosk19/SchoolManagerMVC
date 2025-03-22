@@ -1,0 +1,158 @@
+﻿<!-- Modal: CRUD de Materias -->
+<div class="modal fade" id="subjectModal" tabindex="-1" aria-labelledby="subjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="subjectModalLabel">Gestión de Materias</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <table id="subjectTable" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th style="width: 150px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
+
+                <div class="mt-3">
+                    <label>Nueva Materia</label>
+                    <input type="text" id="newSubjectName" class="form-control" placeholder="Nombre de nueva materia" />
+                    <button class="btn btn-success mt-2" onclick="createSubject()">Agregar Materia</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let subjectDataTable;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const subjectModal = document.getElementById('subjectModal');
+
+        if (subjectModal) {
+            subjectModal.addEventListener('show.bs.modal', function () {
+                loadSubjects();
+            });
+        }
+
+        function loadSubjects() {
+            $.get('/Subject/ListJson')
+                .done(function (data) {
+                    const tbody = $('#subjectTable tbody');
+                    tbody.empty();
+
+                    if (!data || data.length === 0) {
+                        tbody.append(`
+                            <tr>
+                                <td colspan="2" class="text-center text-muted">No hay materias registradas.</td>
+                            </tr>
+                        `);
+                    } else {
+                        data.forEach(subject => {
+                            tbody.append(`
+                                <tr data-id="${subject.id}">
+                                    <td>
+                                        <span class="subject-name-text">${subject.name}</span>
+                                        <input type="text" class="form-control d-none subject-name-input" value="${subject.name}" />
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary btn-edit-subject">Editar</button>
+                                        <button class="btn btn-sm btn-success d-none btn-save-subject">Guardar</button>
+                                        <button class="btn btn-sm btn-danger btn-delete-subject">Eliminar</button>
+                                    </td>
+                                </tr>
+                            `);
+                        });
+                    }
+
+                    if ($.fn.DataTable.isDataTable('#subjectTable')) {
+                        $('#subjectTable').DataTable().destroy();
+                    }
+
+                    subjectDataTable = $('#subjectTable').DataTable({
+                        language: {
+                            search: "Buscar:",
+                            lengthMenu: "Mostrar _MENU_ registros",
+                            zeroRecords: "No se encontraron materias",
+                            info: "Mostrando _START_ a _END_ de _TOTAL_ materias",
+                            infoEmpty: "Sin materias disponibles",
+                            infoFiltered: "(filtrado de _MAX_ materias)"
+                        }
+                    });
+                })
+                .fail(function () {
+                    alert('Ocurrió un error al cargar las materias.');
+                });
+        }
+
+        // Crear materia (modificada)
+        window.createSubject = function () {
+            const name = $('#newSubjectName').val().trim();
+            if (!name) return alert('El nombre no puede estar vacío');
+
+            $.post('/Subject/Create', { name })
+                .done(function (newSubject) {
+                    $('#newSubjectName').val('');
+
+                    // Agregar directamente al DataTable
+                    const newRow = subjectDataTable.row.add([
+                        `
+                        <span class="subject-name-text">${newSubject.name}</span>
+                        <input type="text" class="form-control d-none subject-name-input" value="${newSubject.name}" />
+                        `,
+                        `
+                        <button class="btn btn-sm btn-primary btn-edit-subject">Editar</button>
+                        <button class="btn btn-sm btn-success d-none btn-save-subject">Guardar</button>
+                        <button class="btn btn-sm btn-danger btn-delete-subject">Eliminar</button>
+                        `
+                    ]).draw().node();
+
+                    $(newRow).attr('data-id', newSubject.id);
+                })
+                .fail(function () {
+                    alert('Error al crear la materia.');
+                });
+        };
+
+        // Delegar eventos para Editar
+        $('#subjectTable').on('click', '.btn-edit-subject', function () {
+            const row = $(this).closest('tr');
+            row.find('.subject-name-text').addClass('d-none');
+            row.find('.subject-name-input').removeClass('d-none');
+            row.find('.btn-edit-subject').addClass('d-none');
+            row.find('.btn-save-subject').removeClass('d-none');
+        });
+
+        // Delegar eventos para Guardar cambios
+        $('#subjectTable').on('click', '.btn-save-subject', function () {
+            const row = $(this).closest('tr');
+            const id = row.data('id');
+            const name = row.find('.subject-name-input').val().trim();
+
+            if (!name) return alert('El nombre no puede estar vacío');
+
+            $.post('/Subject/Update', { id, name })
+                .done(loadSubjects)
+                .fail(() => alert('Error al actualizar la materia.'));
+        });
+
+        // Delegar eventos para Eliminar
+        $('#subjectTable').on('click', '.btn-delete-subject', function () {
+            const row = $(this).closest('tr');
+            const id = row.data('id');
+
+            if (!confirm('¿Deseas eliminar esta materia?')) return;
+
+            $.post('/Subject/Delete', { id })
+                .done(loadSubjects)
+                .fail(() => alert('Error al eliminar la materia.'));
+        });
+    });
+</script>
+

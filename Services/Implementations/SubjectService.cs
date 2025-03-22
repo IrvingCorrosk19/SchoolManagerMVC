@@ -16,10 +16,12 @@ public class SubjectService : ISubjectService
     public async Task<Subject?> GetByIdAsync(Guid id) =>
         await _context.Subjects.FindAsync(id);
 
-    public async Task CreateAsync(Subject subject)
+    public async Task<Subject> CreateAsync(Subject subject)
     {
+        // guardar en la base de datos
         _context.Subjects.Add(subject);
         await _context.SaveChangesAsync();
+        return subject;
     }
 
     public async Task UpdateAsync(Subject subject)

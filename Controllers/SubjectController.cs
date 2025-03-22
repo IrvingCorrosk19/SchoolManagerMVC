@@ -28,12 +28,11 @@ public class SubjectController : Controller
     [HttpPost]
     public async Task<IActionResult> Create(Subject subject)
     {
-        if (ModelState.IsValid)
-        {
-            await _subjectService.CreateAsync(subject);
-            return RedirectToAction(nameof(Index));
-        }
-        return View(subject);
+        if (!ModelState.IsValid || string.IsNullOrWhiteSpace(subject.Name))
+            return BadRequest("Nombre inválido");
+
+        var created = await _subjectService.CreateAsync(subject);
+        return Json(new { id = created.Id, name = created.Name });
     }
 
     public async Task<IActionResult> Edit(Guid id)
@@ -67,4 +66,12 @@ public class SubjectController : Controller
         await _subjectService.DeleteAsync(id);
         return RedirectToAction(nameof(Index));
     }
+    [HttpGet]
+    public async Task<IActionResult> ListJson()
+    {
+        var subjects = await _subjectService.GetAllAsync();
+        var result = subjects.Select(s => new { id = s.Id, name = s.Name });
+        return Json(result);
+    }
+
 }

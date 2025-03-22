@@ -24,15 +24,18 @@ public class UserController : Controller
     {
         ViewBag.Roles = Enum.GetNames(typeof(UserRole)).ToList();
 
-        var subjects = await _subjectService.GetAllAsync();
-        ViewBag.Subjects = new SelectList(subjects, "Id", "Name");
+        var subjects = await _subjectService.GetAllAsync() ?? new List<Subject>();
+        ViewBag.Subjects = subjects;
+        ViewBag.SubjectsSelectList = new SelectList(subjects, "Id", "Name");
 
-        var groups = await _groupService.GetAllAsync();
-        ViewBag.Groups = new SelectList(groups, "Id", "Name");
+        var groups = await _groupService.GetAllAsync() ?? new List<Group>();
+        ViewBag.Groups = groups;
+        ViewBag.GroupsSelectList = new SelectList(groups, "Id", "Name");
 
         var users = await _userService.GetAllAsync();
         return View(users);
     }
+
 
     public async Task<IActionResult> Details(Guid id)
     {
