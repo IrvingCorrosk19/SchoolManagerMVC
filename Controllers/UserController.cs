@@ -1,17 +1,35 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using SchoolManager.Enums;
 using SchoolManager.Models;
 
 public class UserController : Controller
 {
     private readonly IUserService _userService;
+    private readonly ISubjectService _subjectService;
+    private readonly IGroupService _groupService;
 
-    public UserController(IUserService userService)
+    public UserController(
+        IUserService userService,
+        ISubjectService subjectService,
+        IGroupService groupService)
     {
         _userService = userService;
+        _subjectService = subjectService;
+        _groupService = groupService;
     }
+
 
     public async Task<IActionResult> Index()
     {
+        ViewBag.Roles = Enum.GetNames(typeof(UserRole)).ToList();
+
+        var subjects = await _subjectService.GetAllAsync();
+        ViewBag.Subjects = new SelectList(subjects, "Id", "Name");
+
+        var groups = await _groupService.GetAllAsync();
+        ViewBag.Groups = new SelectList(groups, "Id", "Name");
+
         var users = await _userService.GetAllAsync();
         return View(users);
     }
