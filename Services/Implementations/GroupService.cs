@@ -15,11 +15,24 @@ public class GroupService : IGroupService
     public async Task<Group?> GetByIdAsync(Guid id) =>
         await _context.Groups.FindAsync(id);
 
-    public async Task CreateAsync(Group group)
+    public async Task<Group> CreateAsync(Group group)
     {
-        _context.Groups.Add(group);
-        await _context.SaveChangesAsync();
+        try
+        {
+            group.Id = Guid.NewGuid();
+            group.CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
+
+            _context.Groups.Add(group);
+            await _context.SaveChangesAsync();
+
+            return group;
+        }
+        catch (Exception ex)
+        {
+            throw new Exception($"Error al crear el grupo: {ex.Message}", ex);
+        }
     }
+
 
     public async Task UpdateAsync(Group group)
     {

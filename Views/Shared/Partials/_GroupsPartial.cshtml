@@ -1,17 +1,193 @@
-﻿@model IEnumerable<SchoolManager.Models.Group>
+﻿<!-- Modal: CRUD de Grupos -->
+<div class="modal fade" id="groupModal" tabindex="-1" aria-labelledby="groupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="groupModalLabel">Gestión de Grupos</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <table id="groupTable" class="table table-bordered table-striped">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Grado</th>
+                            <th style="width: 150px;">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Se llena dinámicamente -->
+                    </tbody>
+                </table>
 
-<div id="groupListContainer">
-    @foreach (var group in Model)
-    {
-        <div class="input-group mb-2">
-            <input type="text" class="form-control" value="@group.Name" data-id="@group.Id" />
-            <button class="btn btn-primary" onclick="updateGroup(@group.Id, this)">Editar</button>
-            <button class="btn btn-danger" onclick="deleteGroup(@group.Id)">Eliminar</button>
+                <div class="mt-3">
+                    <label>Nuevo Grupo</label>
+                    <input type="text" id="newGroupName" class="form-control" placeholder="Nombre del grupo" />
+                    <input type="text" id="newGroupGrade" class="form-control mt-2" placeholder="Grado del grupo" />
+                    <button class="btn btn-success mt-2" onclick="createGroup()">Agregar Grupo</button>
+                </div>
+            </div>
         </div>
-    }
+    </div>
 </div>
+<script>
+    let groupDataTable;
 
-<div class="mt-3">
-    <input type="text" id="newGroupName" class="form-control" placeholder="Nuevo grupo" />
-    <button class="btn btn-success mt-2" onclick="createGroup()">Agregar</button>
-</div>
+    document.addEventListener('DOMContentLoaded', function () {
+        const groupModal = document.getElementById('groupModal');
+
+        if (groupModal) {
+            groupModal.addEventListener('show.bs.modal', function () {
+                loadGroups();
+            });
+        }
+
+        function loadGroups() {
+            $.get('/Group/ListJson')
+                .done(function (data) {
+                    const tbody = $('#groupTable tbody');
+                    tbody.empty();
+
+                    if (!data || data.length === 0) {
+                        tbody.append(`
+                            <tr>
+                                <td colspan="3" class="text-center text-muted">No hay grupos registrados.</td>
+                            </tr>
+                        `);
+                    } else {
+                        data.forEach(group => {
+                            tbody.append(`
+                                <tr data-id="${group.id}">
+                                    <td>
+                                        <span class="group-name-text">${group.name}</span>
+                                        <input type="text" class="form-control d-none group-name-input" value="${group.name}" />
+                                    </td>
+                                    <td>
+                                        <span class="group-grade-text">${group.grade ?? ''}</span>
+                                        <input type="text" class="form-control d-none group-grade-input" value="${group.grade ?? ''}" />
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-primary btn-edit-group">Editar</button>
+                                        <button class="btn btn-sm btn-success d-none btn-save-group">Guardar</button>
+                                        <button class="btn btn-sm btn-danger btn-delete-group">Eliminar</button>
+                                    </td>
+                                </tr>
+                            `);
+                        });
+                    }
+
+                    if ($.fn.DataTable.isDataTable('#groupTable')) {
+                        $('#groupTable').DataTable().destroy();
+                    }
+
+                    groupDataTable = $('#groupTable').DataTable({
+                        language: {
+                            search: "Buscar:",
+                            lengthMenu: "Mostrar _MENU_ registros",
+                            zeroRecords: "No se encontraron grupos",
+                            info: "Mostrando _START_ a _END_ de _TOTAL_ grupos",
+                            infoEmpty: "Sin grupos disponibles",
+                            infoFiltered: "(filtrado de _MAX_ grupos)"
+                        }
+                    });
+                })
+                .fail(function () {
+                    alert('Ocurrió un error al cargar los grupos.');
+                });
+        }
+
+        window.createGroup = function () {
+            const name = $('#newGroupName').val().trim();
+            const grade = $('#newGroupGrade').val().trim();
+
+            if (!name) return alert('El nombre no puede estar vacío');
+
+            $.post('/Group/Create', { name, grade })
+                .done(function (newGroup) {
+                    $('#newGroupName').val('');
+                    $('#newGroupGrade').val('');
+
+                    const newRow = groupDataTable.row.add([
+                        `
+                        <span class="group-name-text">${newGroup.name}</span>
+                        <input type="text" class="form-control d-none group-name-input" value="${newGroup.name}" />
+                        `,
+                        `
+                        <span class="group-grade-text">${newGroup.grade ?? ''}</span>
+                        <input type="text" class="form-control d-none group-grade-input" value="${newGroup.grade ?? ''}" />
+                        `,
+                        `
+                        <button class="btn btn-sm btn-primary btn-edit-group">Editar</button>
+                        <button class="btn btn-sm btn-success d-none btn-save-group">Guardar</button>
+                        <button class="btn btn-sm btn-danger btn-delete-group">Eliminar</button>
+                        `
+                    ]).draw().node();
+
+                    $(newRow).attr('data-id', newGroup.id);
+                    $('select[name="Groups"]').append(`<option value="${newGroup.id}">${newGroup.name}</option>`);
+                })
+                .fail(() => alert('Error al crear el grupo.'));
+        };
+
+        $('#groupTable').on('click', '.btn-edit-group', function () {
+            const row = $(this).closest('tr');
+            row.find('.group-name-text, .group-grade-text').addClass('d-none');
+            row.find('.group-name-input, .group-grade-input').removeClass('d-none');
+            row.find('.btn-edit-group').addClass('d-none');
+            row.find('.btn-save-group').removeClass('d-none');
+        });
+
+        $('#groupTable').on('click', '.btn-save-group', function () {
+            const row = $(this).closest('tr');
+
+            const group = {
+                Id: row.data('id'),
+                Name: row.find('.group-name-input').val().trim(),
+                Grade: row.find('.group-grade-input').val().trim()
+            };
+
+            if (!group.Name) {
+                alert('El nombre no puede estar vacío');
+                return;
+            }
+
+            $.ajax({
+                url: '/Group/Edit',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(group)
+            })
+            .done(function (data) {
+                row.find('.group-name-text').text(data.name).removeClass('d-none');
+                row.find('.group-grade-text').text(data.grade ?? '').removeClass('d-none');
+                row.find('.group-name-input').addClass('d-none');
+                row.find('.group-grade-input').addClass('d-none');
+                row.find('.btn-edit-group').removeClass('d-none');
+                row.find('.btn-save-group').addClass('d-none');
+
+                let option = $(`select[name='Groups'] option[value='${data.id}']`);
+                if (option.length > 0) {
+                    option.text(data.name);
+                } else {
+                    $('select[name="Groups"]').append(`<option value="${data.id}">${data.name}</option>`);
+                }
+            })
+            .fail(() => alert('Error al actualizar el grupo.'));
+        });
+
+        $('#groupTable').on('click', '.btn-delete-group', function () {
+            const row = $(this).closest('tr');
+            const id = row.data('id');
+
+            if (!confirm('¿Deseas eliminar este grupo?')) return;
+
+            $.post('/Group/Delete', { id })
+                .done(function () {
+                    groupDataTable.row(row).remove().draw();
+                    $(`select[name="Groups"] option[value="${id}"]`).remove();
+                })
+                .fail(() => alert('Error al eliminar el grupo.'));
+        });
+    });
+</script>
+

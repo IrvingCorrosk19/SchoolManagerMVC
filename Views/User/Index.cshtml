@@ -72,9 +72,12 @@
                                 }
                             </select>
                             <div id="newGroupsContainer" class="mt-2"></div>
-                            <button type="button" class="btn btn-sm btn-secondary mt-1" onclick="addNewGroup()">+ Agregar nuevo grupo</button>
+                            <button type="button" class="btn btn-sm btn-secondary mt-1" data-bs-toggle="modal" data-bs-target="#groupModal">
+                                Gestionar Grupos
+                            </button>
                         </div>
                     </div>
+
 
                 </div>
 
@@ -140,6 +143,7 @@
     </div>
 </div>
 @await Html.PartialAsync("~/Views/Shared/Partials/_SubjectsPartial.cshtml")
+@await Html.PartialAsync("~/Views/Shared/Partials/_GroupsPartial.cshtml")
 
 @section Scripts {
     <script>
@@ -152,25 +156,7 @@
             });
         });
 
-        function addNewSubject() {
-            let container = document.getElementById("newSubjectsContainer");
-            let input = document.createElement("input");
-            input.type = "text";
-            input.name = "NewSubjects";
-            input.className = "form-control mb-1";
-            input.placeholder = "Nombre de nueva materia";
-            container.appendChild(input);
-        }
 
-        function addNewGroup() {
-            let container = document.getElementById("newGroupsContainer");
-            let input = document.createElement("input");
-            input.type = "text";
-            input.name = "NewGroups";
-            input.className = "form-control mb-1";
-            input.placeholder = "Nombre de nuevo grupo";
-            container.appendChild(input);
-        }
     </script>
 }
 
