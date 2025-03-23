@@ -16,11 +16,20 @@ public class UserService : IUserService
     public async Task<User?> GetByIdAsync(Guid id) =>
         await _context.Users.FindAsync(id);
 
-    public async Task CreateAsync(User user)
+    public async Task CreateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds)
     {
+        // Cargar las entidades completas desde la base de datos
+        var subjects = await _context.Subjects.Where(s => subjectIds.Contains(s.Id)).ToListAsync();
+        var groups = await _context.Groups.Where(g => groupIds.Contains(g.Id)).ToListAsync();
+
+        // Asignar las relaciones
+        user.Subjects = subjects;
+        user.Groups = groups;
+
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
     }
+
 
     public async Task UpdateAsync(User user)
     {

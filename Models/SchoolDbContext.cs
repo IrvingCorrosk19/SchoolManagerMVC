@@ -430,28 +430,37 @@ public partial class SchoolDbContext : DbContext
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("uuid_generate_v4()")
                 .HasColumnName("id");
+
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
+
             entity.Property(e => e.Email)
                 .HasMaxLength(100)
                 .HasColumnName("email");
+
             entity.Property(e => e.LastLogin)
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("last_login");
+
             entity.Property(e => e.Name)
                 .HasMaxLength(100)
                 .HasColumnName("name");
+
             entity.Property(e => e.PasswordHash).HasColumnName("password_hash");
+
             entity.Property(e => e.Role)
                 .HasMaxLength(20)
                 .HasColumnName("role");
+
             entity.Property(e => e.SchoolId).HasColumnName("school_id");
+
             entity.Property(e => e.Status)
                 .HasMaxLength(10)
                 .HasDefaultValueSql("'active'::character varying")
                 .HasColumnName("status");
+
             entity.Property(e => e.TwoFactorEnabled)
                 .HasDefaultValue(false)
                 .HasColumnName("two_factor_enabled");
@@ -461,6 +470,38 @@ public partial class SchoolDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("users_school_id_fkey");
         });
+
+        // Relaciones muchos a muchos (User - Group)
+        modelBuilder.Entity<User>()
+            .HasMany(u => u.Groups)
+            .WithMany(g => g.Users)
+            .UsingEntity<Dictionary<string, object>>(
+                "UserGroup",
+                j => j.HasOne<Group>().WithMany().HasForeignKey("GroupId"),
+                j => j.HasOne<User>().WithMany().HasForeignKey("UserId"),
+                j =>
+                {
+                    j.ToTable("user_groups");
+                    j.HasKey("UserId", "GroupId");
+                    j.IndexerProperty<Guid>("UserId").HasColumnName("user_id");
+                    j.IndexerProperty<Guid>("GroupId").HasColumnName("group_id");
+                });
+
+        // Relaciones muchos a muchos (User - Subject)
+        modelBuilder.Entity<User>()
+            .HasMany(u => u.Subjects)
+            .WithMany(s => s.Users)
+            .UsingEntity<Dictionary<string, object>>(
+                "UserSubject",
+                j => j.HasOne<Subject>().WithMany().HasForeignKey("SubjectId"),
+                j => j.HasOne<User>().WithMany().HasForeignKey("UserId"),
+                j =>
+                {
+                    j.ToTable("user_subjects");
+                    j.HasKey("UserId", "SubjectId");
+                    j.IndexerProperty<Guid>("UserId").HasColumnName("user_id");
+                    j.IndexerProperty<Guid>("SubjectId").HasColumnName("subject_id");
+                });
 
         OnModelCreatingPartial(modelBuilder);
     }

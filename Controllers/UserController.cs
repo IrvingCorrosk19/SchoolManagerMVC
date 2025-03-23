@@ -1,22 +1,49 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using SchoolManager.Enums;
 using SchoolManager.Models;
+using SchoolManager.ViewModels;
 
 public class UserController : Controller
 {
     private readonly IUserService _userService;
     private readonly ISubjectService _subjectService;
     private readonly IGroupService _groupService;
+    private readonly IMapper _mapper;
 
     public UserController(
         IUserService userService,
         ISubjectService subjectService,
-        IGroupService groupService)
+        IGroupService groupService,
+        IMapper mapper) // ← agregar aquí
     {
         _userService = userService;
         _subjectService = subjectService;
         _groupService = groupService;
+        _mapper = mapper;
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateJson([FromBody] CreateUserViewModel model)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var user = new User
+        {
+            Id = Guid.NewGuid(),
+            Name = model.Name,
+            Email = model.Email,
+            Role = model.Role,
+            Status = model.Status,
+            CreatedAt = DateTime.UtcNow,
+            PasswordHash = "123456" // Puedes cambiar esto o manejarlo como desees
+        };
+
+        await _userService.CreateAsync(user, model.Subjects, model.Groups);
+
+        return Ok(new { message = "Usuario creado correctamente", id = user.Id });
     }
 
 
@@ -51,7 +78,7 @@ public class UserController : Controller
     {
         if (ModelState.IsValid)
         {
-            await _userService.CreateAsync(user);
+            //await _userService.CreateAsync(user);
             return RedirectToAction(nameof(Index));
         }
         return View(user);

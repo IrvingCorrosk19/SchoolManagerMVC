@@ -20,4 +20,7 @@ public partial class Group
     public virtual School? School { get; set; }
 
     public virtual ICollection<TeacherAssignment> TeacherAssignments { get; set; } = new List<TeacherAssignment>();
+    // Relación inversa muchos a muchos
+    public virtual ICollection<User> Users { get; set; } = new List<User>();
+
 }

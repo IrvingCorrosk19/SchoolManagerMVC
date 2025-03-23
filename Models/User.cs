@@ -38,4 +38,8 @@ public partial class User
     public virtual ICollection<Student> Students { get; set; } = new List<Student>();
 
     public virtual ICollection<TeacherAssignment> TeacherAssignments { get; set; } = new List<TeacherAssignment>();
+
+    // Relaciones muchos a muchos
+    public virtual ICollection<Group> Groups { get; set; } = new List<Group>();
+    public virtual ICollection<Subject> Subjects { get; set; } = new List<Subject>();
 }
