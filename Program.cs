@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using SchoolManager.Mappings;
 using SchoolManager.Models;
+using AutoMapper;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +27,7 @@ builder.Services.AddScoped<IDisciplineReportService, DisciplineReportService>();
 builder.Services.AddScoped<ISecuritySettingService, SecuritySettingService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IParentService, ParentService>();
+builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
 
 
 var app = builder.Build();

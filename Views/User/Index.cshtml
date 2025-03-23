@@ -12,7 +12,7 @@
             <h3 class="card-title"><i class="fas fa-user-plus"></i> Crear Nuevo Usuario</h3>
         </div>
         <div class="card-body">
-            <form asp-action="Create" method="post">
+            <form id="userForm">
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
@@ -81,9 +81,10 @@
 
                 </div>
 
-                <button type="submit" class="btn btn-primary">
+                <button type="button" id="btnCreateUser" class="btn btn-primary">
                     <i class="fas fa-user-plus"></i> Crear Usuario
                 </button>
+
             </form>
         </div>
     </div>
@@ -155,7 +156,32 @@
                 });
             });
         });
+         $(document).ready(function () {
+            $('#searchInput').on('keyup', function () {
+                var value = $(this).val().toLowerCase();
+                $("#userTable tr").filter(function () {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                });
+            });
 
+            // Capturar datos al hacer clic en "Crear Usuario"
+            $('#btnCreateUser').on('click', function () {
+                const form = $('#userForm');
+                const user = {
+                    Name: form.find('[name="Name"]').val().trim(),
+                    Email: form.find('[name="Email"]').val().trim(),
+                    Role: form.find('[name="Role"]').val(),
+                    Status: form.find('[name="Status"]').val(),
+                    Subjects: form.find('[name="Subjects"]').val() || [],
+                    Groups: form.find('[name="Groups"]').val() || []
+                };
+
+                console.log('Usuario a crear:', user);
+
+                // Aquí puedes hacer el POST a tu endpoint
+                // $.ajax({ ... });
+            });
+        });
 
     </script>
 }
