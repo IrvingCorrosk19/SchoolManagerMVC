@@ -91,34 +91,38 @@
                 });
         }
 
-        // Crear materia (modificada)
-        window.createSubject = function () {
-            const name = $('#newSubjectName').val().trim();
-            if (!name) return alert('El nombre no puede estar vacío');
+        // Crear materia
+    // Crear materia
+    window.createSubject = function () {
+        const name = $('#newSubjectName').val().trim();
+        if (!name) return alert('El nombre no puede estar vacío');
 
-            $.post('/Subject/Create', { name })
-                .done(function (newSubject) {
-                    $('#newSubjectName').val('');
+        $.post('/Subject/Create', { name })
+            .done(function (newSubject) {
+                $('#newSubjectName').val('');
 
-                    // Agregar directamente al DataTable
-                    const newRow = subjectDataTable.row.add([
-                        `
-                        <span class="subject-name-text">${newSubject.name}</span>
-                        <input type="text" class="form-control d-none subject-name-input" value="${newSubject.name}" />
-                        `,
-                        `
-                        <button class="btn btn-sm btn-primary btn-edit-subject">Editar</button>
-                        <button class="btn btn-sm btn-success d-none btn-save-subject">Guardar</button>
-                        <button class="btn btn-sm btn-danger btn-delete-subject">Eliminar</button>
-                        `
-                    ]).draw().node();
+                const newRow = subjectDataTable.row.add([
+                    `
+                    <span class="subject-name-text">${newSubject.name}</span>
+                    <input type="text" class="form-control d-none subject-name-input" value="${newSubject.name}" />
+                    `,
+                    `
+                    <button class="btn btn-sm btn-primary btn-edit-subject">Editar</button>
+                    <button class="btn btn-sm btn-success d-none btn-save-subject">Guardar</button>
+                    <button class="btn btn-sm btn-danger btn-delete-subject">Eliminar</button>
+                    `
+                ]).draw().node();
 
-                    $(newRow).attr('data-id', newSubject.id);
-                })
-                .fail(function () {
-                    alert('Error al crear la materia.');
-                });
-        };
+                $(newRow).attr('data-id', newSubject.id);
+
+                // Añadir nueva materia al <select> de materias
+                const newOption = new Option(newSubject.name, newSubject.id, false, false);
+                $('select[name="Subjects"]').append(newOption);
+            })
+            .fail(function () {
+                alert('Error al crear la materia.');
+            });
+    };
 
         // Delegar eventos para Editar
         $('#subjectTable').on('click', '.btn-edit-subject', function () {
@@ -132,27 +136,60 @@
         // Delegar eventos para Guardar cambios
         $('#subjectTable').on('click', '.btn-save-subject', function () {
             const row = $(this).closest('tr');
-            const id = row.data('id');
-            const name = row.find('.subject-name-input').val().trim();
 
-            if (!name) return alert('El nombre no puede estar vacío');
+            const subject = {
+                Id: row.data('id'),
+                Name: row.find('.subject-name-input').val().trim()
+            };
 
-            $.post('/Subject/Update', { id, name })
-                .done(loadSubjects)
-                .fail(() => alert('Error al actualizar la materia.'));
+            if (!subject.Name) {
+                alert('El nombre no puede estar vacío');
+                return;
+            }
+
+            $.ajax({
+                url: '/Subject/Edit',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(subject)
+            })
+            .done(function (data) {
+                // Verifica si ya existe un option con ese ID
+                let option = $(`select[name='Subjects'] option[value='${data.id}']`);
+                if (option.length > 0) {
+                    option.text(data.name);
+                } else {
+                    $('select[name="Subjects"]').append(`<option value="${data.id}">${data.name}</option>`);
+                }
+
+                // Actualiza visualmente la fila
+                row.find('.subject-name-text').text(data.name).removeClass('d-none');
+                row.find('.subject-name-input').addClass('d-none');
+                row.find('.btn-edit-subject').removeClass('d-none');
+                row.find('.btn-save-subject').addClass('d-none');
+                row.find('.btn-save-subject').addClass('d-none');
+            })
+            .fail(() => alert('Error al actualizar la materia.'));
         });
 
         // Delegar eventos para Eliminar
-        $('#subjectTable').on('click', '.btn-delete-subject', function () {
-            const row = $(this).closest('tr');
-            const id = row.data('id');
+    // Delegar eventos para Eliminar
+    $('#subjectTable').on('click', '.btn-delete-subject', function () {
+        const row = $(this).closest('tr');
+        const id = row.data('id');
+     
+        if (!confirm('¿Deseas eliminar esta materia?')) return;
 
-            if (!confirm('¿Deseas eliminar esta materia?')) return;
+        $.post('/Subject/Delete', { id })
+            .done(function () {
+                // Eliminar la fila del DataTable
+                subjectDataTable.row(row).remove().draw();
 
-            $.post('/Subject/Delete', { id })
-                .done(loadSubjects)
-                .fail(() => alert('Error al eliminar la materia.'));
-        });
+                // Eliminar la opción correspondiente del <select>
+                $(`select[name="Subjects"] option[value="${id}"]`).remove();
+            })
+            .fail(() => alert('Error al eliminar la materia.'));
+    });
+
     });
 </script>
-

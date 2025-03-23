@@ -35,37 +35,39 @@ public class SubjectController : Controller
         return Json(new { id = created.Id, name = created.Name });
     }
 
-    public async Task<IActionResult> Edit(Guid id)
-    {
-        var subject = await _subjectService.GetByIdAsync(id);
-        if (subject == null) return NotFound();
-        return View(subject);
-    }
+    //public async Task<IActionResult> Edit(Guid id)
+    //{
+    //    var subject = await _subjectService.GetByIdAsync(id);
+    //    if (subject == null) return NotFound();
+    //    return View(subject);
+    //}
 
     [HttpPost]
-    public async Task<IActionResult> Edit(Subject subject)
+    public async Task<IActionResult> Edit([FromBody] Subject subject)
     {
-        if (ModelState.IsValid)
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var updatedSubject = await _subjectService.UpdateAsync(subject);
+        return Json(new
         {
-            await _subjectService.UpdateAsync(subject);
-            return RedirectToAction(nameof(Index));
-        }
-        return View(subject);
+            id = updatedSubject.Id,
+            name = updatedSubject.Name
+        });
     }
 
+
+    [HttpPost]
     public async Task<IActionResult> Delete(Guid id)
     {
         var subject = await _subjectService.GetByIdAsync(id);
-        if (subject == null) return NotFound();
-        return View(subject);
+        if (subject == null)
+            return NotFound();
+
+        await _subjectService.DeleteAsync(id);
+        return Ok();
     }
 
-    [HttpPost, ActionName("Delete")]
-    public async Task<IActionResult> DeleteConfirmed(Guid id)
-    {
-        await _subjectService.DeleteAsync(id);
-        return RedirectToAction(nameof(Index));
-    }
     [HttpGet]
     public async Task<IActionResult> ListJson()
     {

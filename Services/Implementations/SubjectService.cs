@@ -24,11 +24,13 @@ public class SubjectService : ISubjectService
         return subject;
     }
 
-    public async Task UpdateAsync(Subject subject)
+    public async Task<Subject> UpdateAsync(Subject subject)
     {
         _context.Subjects.Update(subject);
         await _context.SaveChangesAsync();
+        return subject;
     }
+
 
     public async Task DeleteAsync(Guid id)
     {
