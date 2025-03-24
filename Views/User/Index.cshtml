@@ -29,7 +29,7 @@
                     <div class="col-md-3">
                         <div class="form-group">
                             <label>Rol</label>
-                            <select class="form-control" name="Role">
+                            <select class="form-control" name="Role" id="roleSelect">
                                 @foreach (var role in ViewBag.Roles)
                                 {
                                     <option value="@role">@role</option>
@@ -46,45 +46,49 @@
                             </select>
                         </div>
                     </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label>Materias</label>
-                            <select multiple class="form-control" name="Subjects">
-                                @foreach (var subject in ViewBag.Subjects as List<SchoolManager.Models.Subject>)
-                                {
-                                    <option value="@subject.Id">@subject.Name</option>
-                                }
-                            </select>
-                            <div id="newSubjectsContainer" class="mt-2"></div>
-                            <button type="button" class="btn btn-sm btn-secondary mt-1" data-bs-toggle="modal" data-bs-target="#subjectModal">
-                                Gestionar Materias
-                            </button>
+
+                    <!-- Campos que se muestran solo para Teacher -->
+                    <div class="col-md-6" id="teacherFields">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Materias</label>
+                                    <select multiple class="form-control" name="Subjects">
+                                        @foreach (var subject in ViewBag.Subjects as List<SchoolManager.Models.Subject>)
+                                        {
+                                            <option value="@subject.Id">@subject.Name</option>
+                                        }
+                                    </select>
+                                    <div id="newSubjectsContainer" class="mt-2"></div>
+                                    <button type="button" class="btn btn-sm btn-secondary mt-1" data-bs-toggle="modal" data-bs-target="#subjectModal">
+                                        Gestionar Materias
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label>Grupos</label>
+                                    <select multiple class="form-control" name="Groups">
+                                        @foreach (var group in ViewBag.Groups as List<SchoolManager.Models.Group>)
+                                        {
+                                            <option value="@group.Id">@group.Name</option>
+                                        }
+                                    </select>
+                                    <div id="newGroupsContainer" class="mt-2"></div>
+                                    <button type="button" class="btn btn-sm btn-secondary mt-1" data-bs-toggle="modal" data-bs-target="#groupModal">
+                                        Gestionar Grupos
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
-
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label>Grupos</label>
-                            <select multiple class="form-control" name="Groups">
-                                @foreach (var group in ViewBag.Groups as List<SchoolManager.Models.Group>)
-                                {
-                                    <option value="@group.Id">@group.Name</option>
-                                }
-                            </select>
-                            <div id="newGroupsContainer" class="mt-2"></div>
-                            <button type="button" class="btn btn-sm btn-secondary mt-1" data-bs-toggle="modal" data-bs-target="#groupModal">
-                                Gestionar Grupos
-                            </button>
-                        </div>
-                    </div>
-
-
+                    <!-- Fin Teacher Fields -->
                 </div>
 
                 <button type="button" id="btnCreateUser" class="btn btn-primary">
                     <i class="fas fa-user-plus"></i> Crear Usuario
                 </button>
-
             </form>
         </div>
     </div>
@@ -143,24 +147,18 @@
         </div>
     </div>
 </div>
+
 @await Html.PartialAsync("~/Views/Shared/Partials/_SubjectsPartial.cshtml")
 @await Html.PartialAsync("~/Views/Shared/Partials/_GroupsPartial.cshtml")
 
 @section Scripts {
     <script>
         $(document).ready(function () {
+            // Búsqueda dinámica en tabla de usuarios
             $('#searchInput').on('keyup', function () {
                 var value = $(this).val().toLowerCase();
                 $("#userTable tr").filter(function () {
-                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
-                });
-            });
-        });
-         $(document).ready(function () {
-            $('#searchInput').on('keyup', function () {
-                var value = $(this).val().toLowerCase();
-                $("#userTable tr").filter(function () {
-                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
                 });
             });
 
@@ -178,11 +176,38 @@
 
                 console.log('Usuario a crear:', user);
 
-                // Aquí puedes hacer el POST a tu endpoint
-                // $.ajax({ ... });
+                // Enviar datos al servidor
+                $.ajax({
+                    url: '/User/CreateJson',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(user)
+                })
+                .done(function (response) {
+                    alert(response.message || 'Usuario creado exitosamente');
+                    location.reload();
+                })
+                .fail(function (xhr) {
+                    console.error(xhr);
+                    alert('Error al crear el usuario');
+                });
             });
-        });
 
+            // Mostrar u ocultar campos de teacher
+            function toggleTeacherFields() {
+                let selectedRole = $('#roleSelect').val();
+                if (selectedRole === 'Teacher') {
+                    $('#teacherFields').show();
+                } else {
+                    $('#teacherFields').hide();
+                }
+            }
+
+            // Ejecutar al cargar
+            toggleTeacherFields();
+
+            // Escuchar cambio de rol
+            $('#roleSelect').on('change', toggleTeacherFields);
+        });
     </script>
 }
-

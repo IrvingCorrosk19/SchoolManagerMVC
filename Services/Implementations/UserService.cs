@@ -18,16 +18,25 @@ public class UserService : IUserService
 
     public async Task CreateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds)
     {
-        // Cargar las entidades completas desde la base de datos
-        var subjects = await _context.Subjects.Where(s => subjectIds.Contains(s.Id)).ToListAsync();
-        var groups = await _context.Groups.Where(g => groupIds.Contains(g.Id)).ToListAsync();
+        try
+        {
+            // Cargar las entidades completas desde la base de datos
+            var subjects = await _context.Subjects.Where(s => subjectIds.Contains(s.Id)).ToListAsync();
+            var groups = await _context.Groups.Where(g => groupIds.Contains(g.Id)).ToListAsync();
 
-        // Asignar las relaciones
-        user.Subjects = subjects;
-        user.Groups = groups;
+            // Asignar las relaciones
+            user.Subjects = subjects;
+            user.Groups = groups;
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            // Aquí puedes registrar el error o lanzarlo nuevamente
+            // Por ejemplo, puedes usar un logger o simplemente lanzar de nuevo
+            throw new Exception("Error al crear el usuario y asignar relaciones.", ex);
+        }
     }
 
 

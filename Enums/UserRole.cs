@@ -2,10 +2,8 @@
 {
     public enum UserRole
     {
-        SuperAdmin,
         Admin,
         Director,
-        Teacher,
-        Parent
+        Teacher
     }
 }

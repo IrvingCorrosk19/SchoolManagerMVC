@@ -35,16 +35,17 @@ public class UserController : Controller
             Id = Guid.NewGuid(),
             Name = model.Name,
             Email = model.Email,
-            Role = model.Role,
+            Role = model.Role.ToLower(),
             Status = model.Status,
-            CreatedAt = DateTime.UtcNow,
-            PasswordHash = "123456" // Puedes cambiar esto o manejarlo como desees
+            CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified),
+            PasswordHash = "123456" // temporal o por defecto
         };
 
         await _userService.CreateAsync(user, model.Subjects, model.Groups);
 
         return Ok(new { message = "Usuario creado correctamente", id = user.Id });
     }
+
 
 
     public async Task<IActionResult> Index()
