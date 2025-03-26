@@ -116,4 +116,25 @@ public class UserController : Controller
         await _userService.DeleteAsync(id);
         return RedirectToAction(nameof(Index));
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetUserJson(Guid id)
+    {
+        var user = await _userService.GetByIdWithRelationsAsync(id);
+        if (user == null) return NotFound();
+
+        var result = new
+        {
+            user.Id,
+            user.Name,
+            user.Email,
+            Role = char.ToUpper(user.Role[0]) + user.Role.Substring(1).ToLower(),
+            user.Status,
+            Subjects = user.Subjects.Select(s => s.Id),
+            Groups = user.Groups.Select(g => g.Id)
+        };
+
+        return Json(result);
+    }
+
 }

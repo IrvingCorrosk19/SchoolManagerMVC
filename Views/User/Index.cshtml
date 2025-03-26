@@ -1,7 +1,7 @@
 ﻿@model IEnumerable<SchoolManager.Models.User>
 @{
     ViewData["Title"] = "Gestión de Usuarios";
-    Layout = "_AdminLayout"; // Asegúrate que este sea tu layout correcto
+    Layout = "_AdminLayout";
 }
 
 <div class="container-fluid">
@@ -9,10 +9,13 @@
 
     <div class="card card-primary card-outline">
         <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-user-plus"></i> Crear Nuevo Usuario</h3>
+            <h3 class="card-title"><i class="fas fa-user-plus"></i> Crear / Editar Usuario</h3>
         </div>
         <div class="card-body">
             <form id="userForm">
+                <!-- Campo oculto para saber si es edición -->
+                <input type="hidden" name="UserId" id="UserId" />
+
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
@@ -47,7 +50,6 @@
                         </div>
                     </div>
 
-                    <!-- Campos que se muestran solo para Teacher -->
                     <div class="col-md-6" id="teacherFields">
                         <div class="row">
                             <div class="col-md-6">
@@ -83,7 +85,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Fin Teacher Fields -->
                 </div>
 
                 <button type="button" id="btnCreateUser" class="btn btn-primary">
@@ -133,9 +134,9 @@
                                 }
                             </td>
                             <td>
-                                <a class="btn btn-info btn-sm" href="@Url.Action("Edit", new { id = user.Id })">
+                                <button type="button" class="btn btn-info btn-sm btn-edit-user" data-id="@user.Id">
                                     <i class="fas fa-edit"></i> Editar
-                                </a>
+                                </button>
                                 <a class="btn btn-danger btn-sm" href="@Url.Action("Delete", new { id = user.Id })">
                                     <i class="fas fa-trash"></i> Eliminar
                                 </a>
@@ -154,42 +155,10 @@
 @section Scripts {
     <script>
         $(document).ready(function () {
-            // Búsqueda dinámica en tabla de usuarios
             $('#searchInput').on('keyup', function () {
                 var value = $(this).val().toLowerCase();
                 $("#userTable tr").filter(function () {
                     $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
-                });
-            });
-
-            // Capturar datos al hacer clic en "Crear Usuario"
-            $('#btnCreateUser').on('click', function () {
-                const form = $('#userForm');
-                const user = {
-                    Name: form.find('[name="Name"]').val().trim(),
-                    Email: form.find('[name="Email"]').val().trim(),
-                    Role: form.find('[name="Role"]').val(),
-                    Status: form.find('[name="Status"]').val(),
-                    Subjects: form.find('[name="Subjects"]').val() || [],
-                    Groups: form.find('[name="Groups"]').val() || []
-                };
-
-                console.log('Usuario a crear:', user);
-
-                // Enviar datos al servidor
-                $.ajax({
-                    url: '/User/CreateJson',
-                    method: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify(user)
-                })
-                .done(function (response) {
-                    alert(response.message || 'Usuario creado exitosamente');
-                    location.reload();
-                })
-                .fail(function (xhr) {
-                    console.error(xhr);
-                    alert('Error al crear el usuario');
                 });
             });
 
@@ -203,11 +172,65 @@
                 }
             }
 
-            // Ejecutar al cargar
+            $('#roleSelect').on('change', toggleTeacherFields);
             toggleTeacherFields();
 
-            // Escuchar cambio de rol
-            $('#roleSelect').on('change', toggleTeacherFields);
+            // Botón de crear o actualizar
+            $('#btnCreateUser').on('click', function () {
+                const form = $('#userForm');
+                const isEdit = $('#UserId').val() !== '';
+
+                const user = {
+                    Id: $('#UserId').val(),
+                    Name: form.find('[name="Name"]').val().trim(),
+                    Email: form.find('[name="Email"]').val().trim(),
+                    Role: form.find('[name="Role"]').val(),
+                    Status: form.find('[name="Status"]').val(),
+                    Subjects: form.find('[name="Subjects"]').val() || [],
+                    Groups: form.find('[name="Groups"]').val() || []
+                };
+
+                const url = isEdit ? '/User/UpdateJson' : '/User/CreateJson';
+
+                $.ajax({
+                    url: url,
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(user)
+                })
+                .done(function (response) {
+                    alert(response.message || 'Usuario procesado correctamente');
+                    location.reload();
+                })
+                .fail(function (xhr) {
+                    console.error(xhr);
+                    alert('Error al procesar el usuario');
+                });
+            });
+
+            // Botón editar
+            $('.btn-edit-user').on('click', function () {
+                const userId = $(this).data('id');
+
+                $.get(`/User/GetUserJson?id=${userId}`, function (user) {
+                    $('#UserId').val(user.id);
+                    $('[name="Name"]').val(user.name);
+                    $('[name="Email"]').val(user.email);
+                    $('[name="Role"]').val(user.role);
+                    $('[name="Status"]').val(user.status);
+                    $('[name="Subjects"]').val(user.subjects);
+                    $('[name="Groups"]').val(user.groups);
+
+
+                    console.log(user.role);
+                    toggleTeacherFields();
+
+                    $('#btnCreateUser')
+                        .text('Actualizar Usuario')
+                        .removeClass('btn-primary')
+                        .addClass('btn-warning');
+                });
+            });
         });
     </script>
 }

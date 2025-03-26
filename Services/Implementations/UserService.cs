@@ -10,6 +10,14 @@ public class UserService : IUserService
         _context = context;
     }
 
+    public async Task<User?> GetByIdWithRelationsAsync(Guid id)
+    {
+        return await _context.Users
+            .Include(u => u.Subjects)
+            .Include(u => u.Groups)
+            .FirstOrDefaultAsync(u => u.Id == id);
+    }
+
     public async Task<List<User>> GetAllAsync() =>
         await _context.Users.ToListAsync();
 
