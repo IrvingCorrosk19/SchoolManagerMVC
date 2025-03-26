@@ -10,6 +10,34 @@ public class UserService : IUserService
         _context = context;
     }
 
+    public async Task UpdateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds)
+    {
+        // Actualizar Subjects
+        user.Subjects.Clear();
+        if (subjectIds.Any())
+        {
+            var subjects = await _context.Subjects.Where(s => subjectIds.Contains(s.Id)).ToListAsync();
+            foreach (var subject in subjects)
+            {
+                user.Subjects.Add(subject);
+            }
+        }
+
+        // Actualizar Groups
+        user.Groups.Clear();
+        if (groupIds.Any())
+        {
+            var groups = await _context.Groups.Where(g => groupIds.Contains(g.Id)).ToListAsync();
+            foreach (var group in groups)
+            {
+                user.Groups.Add(group);
+            }
+        }
+
+        _context.Users.Update(user);
+        await _context.SaveChangesAsync();
+    }
+
     public async Task<User?> GetByIdWithRelationsAsync(Guid id)
     {
         return await _context.Users

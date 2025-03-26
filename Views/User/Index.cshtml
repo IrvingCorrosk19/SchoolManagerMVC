@@ -90,6 +90,10 @@
                 <button type="button" id="btnCreateUser" class="btn btn-primary">
                     <i class="fas fa-user-plus"></i> Crear Usuario
                 </button>
+
+                <button type="button" id="btnUpdateUser" class="btn btn-warning" disabled>
+                    <i class="fas fa-save"></i> Actualizar Usuario
+                </button>
             </form>
         </div>
     </div>
@@ -162,7 +166,6 @@
                 });
             });
 
-            // Mostrar u ocultar campos de teacher
             function toggleTeacherFields() {
                 let selectedRole = $('#roleSelect').val();
                 if (selectedRole === 'Teacher') {
@@ -175,10 +178,39 @@
             $('#roleSelect').on('change', toggleTeacherFields);
             toggleTeacherFields();
 
-            // Botón de crear o actualizar
+            // Crear usuario
             $('#btnCreateUser').on('click', function () {
                 const form = $('#userForm');
-                const isEdit = $('#UserId').val() !== '';
+
+                const user = {
+                    Name: form.find('[name="Name"]').val().trim(),
+                    Email: form.find('[name="Email"]').val().trim(),
+                    Role: form.find('[name="Role"]').val(),
+                    Status: form.find('[name="Status"]').val(),
+                    Subjects: form.find('[name="Subjects"]').val() || [],
+                    Groups: form.find('[name="Groups"]').val() || []
+                };
+
+                $.ajax({
+                    url: '/User/CreateJson',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(user)
+                })
+                .done(function (response) {
+                    alert(response.message || 'Usuario creado exitosamente');
+                    resetUserForm();
+                    location.reload();
+                })
+                .fail(function (xhr) {
+                    console.error(xhr);
+                    alert('Error al crear el usuario');
+                });
+            });
+
+            // Actualizar usuario
+            $('#btnUpdateUser').on('click', function () {
+                const form = $('#userForm');
 
                 const user = {
                     Id: $('#UserId').val(),
@@ -190,25 +222,24 @@
                     Groups: form.find('[name="Groups"]').val() || []
                 };
 
-                const url = isEdit ? '/User/UpdateJson' : '/User/CreateJson';
-
                 $.ajax({
-                    url: url,
+                    url: '/User/UpdateJson',
                     method: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify(user)
                 })
                 .done(function (response) {
-                    alert(response.message || 'Usuario procesado correctamente');
+                    alert(response.message || 'Usuario actualizado correctamente');
+                    resetUserForm();
                     location.reload();
                 })
                 .fail(function (xhr) {
                     console.error(xhr);
-                    alert('Error al procesar el usuario');
+                    alert('Error al actualizar el usuario');
                 });
             });
 
-            // Botón editar
+            // Editar usuario (cargar en formulario)
             $('.btn-edit-user').on('click', function () {
                 const userId = $(this).data('id');
 
@@ -221,16 +252,44 @@
                     $('[name="Subjects"]').val(user.subjects);
                     $('[name="Groups"]').val(user.groups);
 
-
-                    console.log(user.role);
                     toggleTeacherFields();
 
-                    $('#btnCreateUser')
-                        .text('Actualizar Usuario')
-                        .removeClass('btn-primary')
-                        .addClass('btn-warning');
+                    $('#btnUpdateUser').prop('disabled', false);
+                    $('#btnCreateUser').prop('disabled', true);
                 });
             });
+
+            // Reset
+            function resetUserForm() {
+                const form = $('#userForm');
+
+                form[0].reset();
+                $('#UserId').val('');
+                $('#btnUpdateUser').prop('disabled', true);
+                $('#btnCreateUser').prop('disabled', false);
+                toggleTeacherFields();
+            }
         });
+
+                // Eliminar usuario
+        $('.btn-delete-user').on('click', function () {
+            const userId = $(this).data('id');
+
+            if (!confirm('¿Estás seguro de que deseas eliminar este usuario?')) return;
+
+            $.ajax({
+                url: `/User/DeleteConfirmed/${userId}`,
+                type: 'POST'
+            })
+            .done(function () {
+                alert('Usuario eliminado correctamente');
+                location.reload(); // O puedes eliminar la fila directamente si quieres
+            })
+            .fail(function (xhr) {
+                console.error(xhr);
+                alert('Error al eliminar el usuario');
+            });
+        });
+
     </script>
 }

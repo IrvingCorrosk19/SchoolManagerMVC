@@ -6,6 +6,7 @@ namespace SchoolManager.ViewModels
 {
     public class CreateUserViewModel
     {
+        public Guid Id { get; set; } // ← AÑADIR ESTA LÍNEA
         [Required(ErrorMessage = "El nombre es obligatorio.")]
         public string Name { get; set; } = null!;
 

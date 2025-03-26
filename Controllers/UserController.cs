@@ -110,12 +110,13 @@ public class UserController : Controller
         return View(user);
     }
 
-    [HttpPost, ActionName("Delete")]
+    [HttpPost]
     public async Task<IActionResult> DeleteConfirmed(Guid id)
     {
         await _userService.DeleteAsync(id);
-        return RedirectToAction(nameof(Index));
+        return Ok();
     }
+
 
     [HttpGet]
     public async Task<IActionResult> GetUserJson(Guid id)
@@ -136,5 +137,26 @@ public class UserController : Controller
 
         return Json(result);
     }
+
+    [HttpPost]
+    public async Task<IActionResult> UpdateJson([FromBody] CreateUserViewModel model)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var existingUser = await _userService.GetByIdWithRelationsAsync(model.Id);
+        if (existingUser == null)
+            return NotFound(new { message = "Usuario no encontrado" });
+
+        existingUser.Name = model.Name;
+        existingUser.Email = model.Email;
+        existingUser.Role = model.Role.ToLower();
+        existingUser.Status = model.Status;
+
+        await _userService.UpdateAsync(existingUser, model.Subjects, model.Groups);
+
+        return Ok(new { message = "Usuario actualizado correctamente" });
+    }
+
 
 }

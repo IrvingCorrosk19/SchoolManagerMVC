@@ -9,4 +9,6 @@ public interface IUserService
     Task UpdateAsync(User user);
     Task DeleteAsync(Guid id);
     Task<User?> AuthenticateAsync(string email, string password);
+    Task UpdateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds);
+
 }
