@@ -141,9 +141,10 @@
                                 <button type="button" class="btn btn-info btn-sm btn-edit-user" data-id="@user.Id">
                                     <i class="fas fa-edit"></i> Editar
                                 </button>
-                                <a class="btn btn-danger btn-sm" href="@Url.Action("Delete", new { id = user.Id })">
+                                <button type="button" class="btn btn-danger btn-sm btn-delete-user" data-id="@user.Id">
                                     <i class="fas fa-trash"></i> Eliminar
-                                </a>
+                                </button>
+
                             </td>
                         </tr>
                     }

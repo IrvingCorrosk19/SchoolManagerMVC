@@ -84,13 +84,23 @@ public class UserService : IUserService
 
     public async Task DeleteAsync(Guid id)
     {
-        var user = await _context.Users.FindAsync(id);
-        if (user != null)
-        {
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
-        }
+        var user = await _context.Users
+            .Include(u => u.Subjects)
+            .Include(u => u.Groups)
+            .FirstOrDefaultAsync(u => u.Id == id);
+
+        if (user == null) return;
+
+        // Limpiar relaciones muchos a muchos
+        user.Subjects.Clear();
+        user.Groups.Clear();
+
+        await _context.SaveChangesAsync(); // Guardar después de limpiar relaciones
+
+        _context.Users.Remove(user);
+        await _context.SaveChangesAsync(); // Ahora eliminar usuario
     }
+
 
     public async Task<User?> AuthenticateAsync(string email, string password)
     {

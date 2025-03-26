@@ -503,6 +503,15 @@ public partial class SchoolDbContext : DbContext
                     j.IndexerProperty<Guid>("SubjectId").HasColumnName("subject_id");
                 });
 
+        modelBuilder.Entity<User>()
+                .HasMany(u => u.Subjects)
+                .WithMany(s => s.Users)
+                .UsingEntity<Dictionary<string, object>>(
+                    "UserSubjects",
+                    j => j.HasOne<Subject>().WithMany().HasForeignKey("SubjectId").OnDelete(DeleteBehavior.Cascade),
+                    j => j.HasOne<User>().WithMany().HasForeignKey("UserId").OnDelete(DeleteBehavior.Cascade)
+    );
+
         OnModelCreatingPartial(modelBuilder);
     }
 
