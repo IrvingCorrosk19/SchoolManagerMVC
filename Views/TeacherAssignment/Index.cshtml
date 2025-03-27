@@ -1,0 +1,222 @@
+﻿@model SchoolManager.ViewModels.TeacherActivityViewModel
+@{
+    ViewData["Title"] = "Agregar Actividad";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid">
+    <h3 class="mb-4">Registro de Actividades del Docente</h3>
+
+    <!-- Filtros -->
+    <div class="card card-outline card-success mb-4">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-filter"></i> Filtros</h3>
+        </div>
+        <div class="card-body row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>Grupo</label>
+                    <select class="form-control" id="SelectedGroup">
+                        @foreach (var group in Model.Groups)
+                        {
+                            <option value="@group.Id">@group.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label>Materia</label>
+                    <select class="form-control" id="SelectedSubject">
+                        @foreach (var subject in Model.Subjects)
+                        {
+                            <option value="@subject.Id">@subject.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Formulario -->
+    <div class="card card-outline card-success">
+        <div class="card-header">
+            <h3 class="card-title"><i class="fas fa-plus-circle"></i> Agregar Nueva Actividad</h3>
+        </div>
+        <div class="card-body">
+            <form enctype="multipart/form-data" method="post" asp-action="Create" id="activityForm">
+                <input type="hidden" name="UserId" value="@Model.UserId" />
+
+                <div class="row">
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label>Nombre de la Actividad</label>
+                            <input type="text" name="ActivityName" id="ActivityName" class="form-control" placeholder="Ej. Tarea 2, Examen Final" required />
+                        </div>
+                    </div>
+
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>Tipo</label>
+                            <select name="ActivityType" id="ActivityType" class="form-control">
+                                <option value="Tarea">Tarea</option>
+                                <option value="Parcial">Parcial</option>
+                                <option value="Examen">Examen</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label>Archivo PDF (opcional)</label>
+                            <input type="file" name="PdfFile" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-success mt-3" id="btnAgregarActividad">
+                    <i class="fas fa-plus"></i> Agregar Actividad
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Registro de Calificaciones -->
+    <div class="card mt-5">
+        <div class="card-header bg-light">
+            <h5 class="card-title text-success">
+                <i class="fas fa-clipboard-list"></i> Registro de Calificaciones
+            </h5>
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-bordered text-center" id="gradesTable">
+                <thead class="table-success" id="gradesHeader">
+                    <tr>
+                        <th>Estudiante</th>
+                        <th>Grado</th>
+                        <!-- Aquí se agregan columnas de actividades dinámicamente -->
+                    </tr>
+                </thead>
+                <tbody id="gradesTableBody">
+                    <!-- Se llena dinámicamente con JS -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const students = [
+            { name: "Ana García", grade: "1º Primaria" },
+            { name: "Carlos Rodríguez", grade: "2º Primaria" },
+            { name: "María López", grade: "3º Primaria" },
+            { name: "Juan Martínez", grade: "4º Primaria" },
+            { name: "Sofía Hernández", grade: "5º Primaria" },
+            { name: "Pedro Gómez", grade: "1º Primaria" },
+            { name: "Laura Torres", grade: "2º Primaria" },
+            { name: "Diego Ramírez", grade: "3º Primaria" },
+            { name: "Valentina Díaz", grade: "4º Primaria" },
+            { name: "Mateo Sánchez", grade: "5º Primaria" }
+        ];
+
+        let activities = [];
+
+        function calculateAverage(values) {
+            if (values.length === 0) return 0;
+            const sum = values.reduce((a, b) => a + b, 0);
+            return (sum / values.length).toFixed(1);
+        }
+
+        function renderGradesTable() {
+            const $headerRow = $("#gradesTable thead tr");
+            const $body = $("#gradesTableBody");
+
+            // Limpiar encabezado y cuerpo
+            $headerRow.html(`
+                <th>Estudiante</th>
+                <th>Grado</th>
+            `);
+            $body.empty();
+
+            const grouped = {
+                Tarea: [],
+                Parcial: [],
+                Examen: []
+            };
+
+            // Agrupar actividades por tipo
+            activities.forEach((act) => {
+                grouped[act.tipo].push(act);
+            });
+
+            const columns = [];
+
+            Object.entries(grouped).forEach(([tipo, list]) => {
+                list.forEach((act, i) => {
+                    const colKey = `${tipo}_${i}`;
+                    $headerRow.append(`<th>${act.nombre}</th>`);
+                    columns.push({ tipo, colKey });
+                });
+
+                if (list.length > 0) {
+                    $headerRow.append(`<th>Promedio ${tipo.toLowerCase()}</th>`);
+                    columns.push({ tipo, colKey: `prom_${tipo}` });
+                }
+            });
+
+            $headerRow.append(`<th>Promedio Total</th>`);
+
+            // Render body
+            students.forEach((student) => {
+                const row = $("<tr>");
+                row.append(`<td>${student.name}</td>`);
+                row.append(`<td>${student.grade}</td>`);
+
+                const tareas = [], parciales = [], examenes = [];
+
+                Object.entries(grouped).forEach(([tipo, list]) => {
+                    list.forEach(() => {
+                        const nota = (Math.random() * 3 + 2).toFixed(1);
+                        const val = parseFloat(nota);
+
+                        if (tipo === "Tarea") tareas.push(val);
+                        if (tipo === "Parcial") parciales.push(val);
+                        if (tipo === "Examen") examenes.push(val);
+
+                        row.append(`<td><input type="number" class="form-control form-control-sm text-center" value="${val}" step="0.1" min="0" max="5"/></td>`);
+                    });
+
+                    if (list.length > 0) {
+                        const prom = tipo === "Tarea" ? tareas : tipo === "Parcial" ? parciales : examenes;
+                        const avg = calculateAverage(prom);
+                        row.append(`<td><strong>${avg}</strong></td>`);
+                    }
+                });
+
+                const total = calculateAverage([...tareas, ...parciales, ...examenes]);
+                row.append(`<td><strong>${total}</strong></td>`);
+
+                $body.append(row);
+            });
+        }
+
+        $("#btnAgregarActividad").on("click", function () {
+            const nombre = $("#ActivityName").val().trim();
+            const tipo = $("#ActivityType").val();
+
+            if (!nombre || !tipo) {
+                alert("Completa todos los campos.");
+                return;
+            }
+
+            activities.push({ nombre, tipo });
+            renderGradesTable();
+            $("#ActivityName").val("");
+        });
+
+        $(document).ready(function () {
+            renderGradesTable();
+        });
+    </script>
+}
