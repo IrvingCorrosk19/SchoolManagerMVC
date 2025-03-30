@@ -25,8 +25,6 @@ public partial class Student
 
     public virtual ICollection<DisciplineReport> DisciplineReports { get; set; } = new List<DisciplineReport>();
 
-    public virtual ICollection<Grade> Grades { get; set; } = new List<Grade>();
-
     public virtual User? Parent { get; set; }
 
     public virtual School? School { get; set; }

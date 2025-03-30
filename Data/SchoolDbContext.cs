@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using SchoolManager.Models;
 
-namespace SchoolManager.Models;
+namespace SchoolManager.Data;
 
 public partial class SchoolDbContext : DbContext
 {
@@ -17,13 +18,11 @@ public partial class SchoolDbContext : DbContext
 
     public virtual DbSet<Activity> Activities { get; set; }
 
-    public virtual DbSet<Attendance> Attendance { get; set; }
+    public virtual DbSet<Attendance> Attendances { get; set; }
 
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
 
     public virtual DbSet<DisciplineReport> DisciplineReports { get; set; }
-
-    public virtual DbSet<Grade> Grades { get; set; }
 
     public virtual DbSet<GradeLevel> GradeLevels { get; set; }
 
@@ -194,28 +193,6 @@ public partial class SchoolDbContext : DbContext
             entity.HasOne(d => d.Teacher).WithMany(p => p.DisciplineReports)
                 .HasForeignKey(d => d.TeacherId)
                 .HasConstraintName("discipline_reports_teacher_id_fkey");
-        });
-
-        modelBuilder.Entity<Grade>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("grades_pkey");
-
-            entity.ToTable("grades");
-
-            entity.Property(e => e.Id)
-                .HasDefaultValueSql("uuid_generate_v4()")
-                .HasColumnName("id");
-            entity.Property(e => e.ActivityId).HasColumnName("activity_id");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("created_at");
-            entity.Property(e => e.StudentId).HasColumnName("student_id");
-            entity.Property(e => e.Value)
-                .HasPrecision(3, 1)
-                .HasColumnName("value");
-
-
         });
 
         modelBuilder.Entity<GradeLevel>(entity =>
@@ -478,17 +455,36 @@ public partial class SchoolDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("users_school_id_fkey");
 
+            entity.HasMany(d => d.Grades).WithMany(p => p.Users)
+                .UsingEntity<Dictionary<string, object>>(
+                    "UserGrade",
+                    r => r.HasOne<GradeLevel>().WithMany()
+                        .HasForeignKey("GradeId")
+                        .OnDelete(DeleteBehavior.ClientSetNull)
+                        .HasConstraintName("fk_user_grades_grade"),
+                    l => l.HasOne<User>().WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.ClientSetNull)
+                        .HasConstraintName("fk_user_grades_user"),
+                    j =>
+                    {
+                        j.HasKey("UserId", "GradeId").HasName("user_grades_pkey");
+                        j.ToTable("user_grades");
+                        j.IndexerProperty<Guid>("UserId").HasColumnName("user_id");
+                        j.IndexerProperty<Guid>("GradeId").HasColumnName("grade_id");
+                    });
+
             entity.HasMany(d => d.Groups).WithMany(p => p.Users)
                 .UsingEntity<Dictionary<string, object>>(
                     "UserGroup",
                     r => r.HasOne<Group>().WithMany()
                         .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("user_groups_group_id_fkey"),
+                        .HasConstraintName("fk_user_groups_group"),
                     l => l.HasOne<User>().WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("user_groups_user_id_fkey"),
+                        .HasConstraintName("fk_user_groups_user"),
                     j =>
                     {
                         j.HasKey("UserId", "GroupId").HasName("user_groups_pkey");
@@ -503,11 +499,11 @@ public partial class SchoolDbContext : DbContext
                     r => r.HasOne<Subject>().WithMany()
                         .HasForeignKey("SubjectId")
                         .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("user_subjects_subject_id_fkey"),
+                        .HasConstraintName("fk_user_subjects_subject"),
                     l => l.HasOne<User>().WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("user_subjects_user_id_fkey"),
+                        .HasConstraintName("fk_user_subjects_user"),
                     j =>
                     {
                         j.HasKey("UserId", "SubjectId").HasName("user_subjects_pkey");

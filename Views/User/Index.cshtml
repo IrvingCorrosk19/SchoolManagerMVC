@@ -50,42 +50,6 @@
                             </select>
                         </div>
                     </div>
-
-                    <div class="col-md-6" id="teacherFields">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Materias</label>
-                                    <select multiple class="form-control" name="Subjects">
-                                        @foreach (var subject in ViewBag.Subjects as List<SchoolManager.Models.Subject>)
-                                        {
-                                            <option value="@subject.Id">@subject.Name</option>
-                                        }
-                                    </select>
-                                    <div id="newSubjectsContainer" class="mt-2"></div>
-                                    <button type="button" class="btn btn-sm btn-secondary mt-1" data-bs-toggle="modal" data-bs-target="#subjectModal">
-                                        Gestionar Materias
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <div class="form-group">
-                                    <label>Grupos</label>
-                                    <select multiple class="form-control" name="Groups">
-                                        @foreach (var group in ViewBag.Groups as List<SchoolManager.Models.Group>)
-                                        {
-                                            <option value="@group.Id">@group.Name</option>
-                                        }
-                                    </select>
-                                    <div id="newGroupsContainer" class="mt-2"></div>
-                                    <button type="button" class="btn btn-sm btn-secondary mt-1" data-bs-toggle="modal" data-bs-target="#groupModal">
-                                        Gestionar Grupos
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 <button type="button" id="btnCreateUser" class="btn btn-primary">
@@ -153,9 +117,6 @@
     </div>
 </div>
 
-@await Html.PartialAsync("~/Views/Shared/Partials/_SubjectsPartial.cshtml")
-@await Html.PartialAsync("~/Views/Shared/Partials/_GroupsPartial.cshtml")
-
 @section Scripts {
     <link rel="stylesheet" href="~/lib/sweetalert2/sweetalert2.min.css" />
     <script src="~/lib/sweetalert2/sweetalert2.min.js"></script>
@@ -168,18 +129,6 @@
                     $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1);
                 });
             });
-
-            function toggleTeacherFields() {
-                let selectedRole = $('#roleSelect').val();
-                if (selectedRole === 'Teacher') {
-                    $('#teacherFields').show();
-                } else {
-                    $('#teacherFields').hide();
-                }
-            }
-
-            $('#roleSelect').on('change', toggleTeacherFields);
-            toggleTeacherFields();
 
             function showValidationErrors(user) {
                 const form = $('#userForm');
@@ -194,9 +143,7 @@
                     Name: form.find('[name="Name"]').val().trim(),
                     Email: form.find('[name="Email"]').val().trim(),
                     Role: form.find('[name="Role"]').val(),
-                    Status: form.find('[name="Status"]').val(),
-                    Subjects: form.find('[name="Subjects"]').val() || [],
-                    Groups: form.find('[name="Groups"]').val() || []
+                    Status: form.find('[name="Status"]').val()
                 };
 
                 showValidationErrors(user);
@@ -235,9 +182,7 @@
                     Name: form.find('[name="Name"]').val().trim(),
                     Email: form.find('[name="Email"]').val().trim(),
                     Role: form.find('[name="Role"]').val(),
-                    Status: form.find('[name="Status"]').val(),
-                    Subjects: form.find('[name="Subjects"]').val() || [],
-                    Groups: form.find('[name="Groups"]').val() || []
+                    Status: form.find('[name="Status"]').val()
                 };
 
                 showValidationErrors(user);
@@ -278,10 +223,6 @@
                     $('[name="Email"]').val(user.email);
                     $('[name="Role"]').val(user.role);
                     $('[name="Status"]').val(user.status);
-                    $('[name="Subjects"]').val(user.subjects);
-                    $('[name="Groups"]').val(user.groups);
-
-                    toggleTeacherFields();
 
                     $('#btnUpdateUser').prop('disabled', false);
                     $('#btnCreateUser').prop('disabled', true);
@@ -326,7 +267,6 @@
                 $('#btnUpdateUser').prop('disabled', true);
                 $('#btnCreateUser').prop('disabled', false);
                 form.find('input, select').removeClass('is-invalid');
-                toggleTeacherFields();
             }
         });
     </script>

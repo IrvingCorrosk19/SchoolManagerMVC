@@ -25,8 +25,6 @@ public partial class Activity
 
     public DateTime? CreatedAt { get; set; }
 
-    public virtual ICollection<Grade> Grades { get; set; } = new List<Grade>();
-
     public virtual Group? Group { get; set; }
 
     public virtual School? School { get; set; }
