@@ -11,36 +11,36 @@ public class AttendanceService : IAttendanceService
     }
 
     public async Task<List<Attendance>> GetAllAsync() =>
-        await _context.Attendances.ToListAsync();
+        await _context.Attendance.ToListAsync();
 
     public async Task<Attendance?> GetByIdAsync(Guid id) =>
-        await _context.Attendances.FindAsync(id);
+        await _context.Attendance.FindAsync(id);
 
     public async Task CreateAsync(Attendance attendance)
     {
-        _context.Attendances.Add(attendance);
+        _context.Attendance.Add(attendance);
         await _context.SaveChangesAsync();
     }
 
     public async Task UpdateAsync(Attendance attendance)
     {
-        _context.Attendances.Update(attendance);
+        _context.Attendance.Update(attendance);
         await _context.SaveChangesAsync();
     }
 
     public async Task DeleteAsync(Guid id)
     {
-        var attendance = await _context.Attendances.FindAsync(id);
+        var attendance = await _context.Attendance.FindAsync(id);
         if (attendance != null)
         {
-            _context.Attendances.Remove(attendance);
+            _context.Attendance.Remove(attendance);
             await _context.SaveChangesAsync();
         }
     }
 
     public async Task<List<Attendance>> GetByStudentAsync(Guid studentId)
     {
-        return await _context.Attendances
+        return await _context.Attendance
             .Where(a => a.StudentId == studentId)
             .ToListAsync();
     }

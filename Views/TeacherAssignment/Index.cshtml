@@ -8,7 +8,7 @@
     <h3 class="mb-4">Registro de Actividades del Docente</h3>
 
     <!-- Filtros -->
-    <div class="card card-outline card-success mb-4">
+    <div class="card card-primary card-outline mb-4">
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-filter"></i> Filtros</h3>
         </div>
@@ -39,9 +39,9 @@
     </div>
 
     <!-- Formulario -->
-    <div class="card card-outline card-success">
+    <div class="card card-primary card-outline">
         <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-plus-circle"></i> Agregar Nueva Actividad</h3>
+            <h3 class="card-title"><i class="fas fa-plus-circle"></i> Agregar / Editar Actividad</h3>
         </div>
         <div class="card-body">
             <form enctype="multipart/form-data" method="post" asp-action="Create" id="activityForm">
@@ -74,7 +74,7 @@
                     </div>
                 </div>
 
-                <button type="button" class="btn btn-success mt-3" id="btnAgregarActividad">
+                <button type="button" class="btn btn-primary mt-3" id="btnAgregarActividad">
                     <i class="fas fa-plus"></i> Agregar Actividad
                 </button>
             </form>
@@ -82,11 +82,9 @@
     </div>
 
     <!-- Registro de Calificaciones -->
-    <div class="card mt-5">
-        <div class="card-header bg-light">
-            <h5 class="card-title text-success">
-                <i class="fas fa-clipboard-list"></i> Registro de Calificaciones
-            </h5>
+    <div class="card card-primary card-outline mt-5">
+        <div class="card-header">
+            <h5 class="card-title"><i class="fas fa-clipboard-list"></i> Registro de Calificaciones</h5>
         </div>
         <div class="card-body table-responsive">
             <table class="table table-bordered text-center" id="gradesTable">
@@ -94,16 +92,17 @@
                     <tr>
                         <th>Estudiante</th>
                         <th>Grado</th>
-                        <!-- Aquí se agregan columnas de actividades dinámicamente -->
+                        <!-- Columnas dinámicas JS -->
                     </tr>
                 </thead>
                 <tbody id="gradesTableBody">
-                    <!-- Se llena dinámicamente con JS -->
+                    <!-- Llenado dinámico -->
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+
 
 @section Scripts {
     <script>

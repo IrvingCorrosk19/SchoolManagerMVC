@@ -18,9 +18,17 @@ public class GradeService : IGradeService
 
     public async Task CreateAsync(Grade grade)
     {
-        _context.Grades.Add(grade);
-        await _context.SaveChangesAsync();
+        try
+        {
+            _context.Grades.Add(grade);
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error al crear el grado. Detalles: " + ex.Message, ex);
+        }
     }
+
 
     public async Task UpdateAsync(Grade grade)
     {
@@ -44,4 +52,5 @@ public class GradeService : IGradeService
             .Where(g => g.StudentId == studentId)
             .ToListAsync();
     }
+
 }

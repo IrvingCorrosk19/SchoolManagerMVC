@@ -17,13 +17,15 @@ public partial class SchoolDbContext : DbContext
 
     public virtual DbSet<Activity> Activities { get; set; }
 
-    public virtual DbSet<Attendance> Attendances { get; set; }
+    public virtual DbSet<Attendance> Attendance { get; set; }
 
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
 
     public virtual DbSet<DisciplineReport> DisciplineReports { get; set; }
 
     public virtual DbSet<Grade> Grades { get; set; }
+
+    public virtual DbSet<GradeLevel> GradeLevels { get; set; }
 
     public virtual DbSet<Group> Groups { get; set; }
 
@@ -220,6 +222,27 @@ public partial class SchoolDbContext : DbContext
             entity.HasOne(d => d.Student).WithMany(p => p.Grades)
                 .HasForeignKey(d => d.StudentId)
                 .HasConstraintName("grades_student_id_fkey");
+        });
+
+        modelBuilder.Entity<GradeLevel>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("grade_levels_pkey");
+
+            entity.ToTable("grade_levels");
+
+            entity.HasIndex(e => e.Name, "grade_levels_name_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Name)
+                .HasMaxLength(100)
+                .HasColumnName("name");
         });
 
         modelBuilder.Entity<Group>(entity =>
@@ -430,37 +453,28 @@ public partial class SchoolDbContext : DbContext
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("uuid_generate_v4()")
                 .HasColumnName("id");
-
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
-
             entity.Property(e => e.Email)
                 .HasMaxLength(100)
                 .HasColumnName("email");
-
             entity.Property(e => e.LastLogin)
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("last_login");
-
             entity.Property(e => e.Name)
                 .HasMaxLength(100)
                 .HasColumnName("name");
-
             entity.Property(e => e.PasswordHash).HasColumnName("password_hash");
-
             entity.Property(e => e.Role)
                 .HasMaxLength(20)
                 .HasColumnName("role");
-
             entity.Property(e => e.SchoolId).HasColumnName("school_id");
-
             entity.Property(e => e.Status)
                 .HasMaxLength(10)
                 .HasDefaultValueSql("'active'::character varying")
                 .HasColumnName("status");
-
             entity.Property(e => e.TwoFactorEnabled)
                 .HasDefaultValue(false)
                 .HasColumnName("two_factor_enabled");
@@ -469,48 +483,45 @@ public partial class SchoolDbContext : DbContext
                 .HasForeignKey(d => d.SchoolId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("users_school_id_fkey");
-        });
 
-        // Relaciones muchos a muchos (User - Group)
-        modelBuilder.Entity<User>()
-            .HasMany(u => u.Groups)
-            .WithMany(g => g.Users)
-            .UsingEntity<Dictionary<string, object>>(
-                "UserGroup",
-                j => j.HasOne<Group>().WithMany().HasForeignKey("GroupId"),
-                j => j.HasOne<User>().WithMany().HasForeignKey("UserId"),
-                j =>
-                {
-                    j.ToTable("user_groups");
-                    j.HasKey("UserId", "GroupId");
-                    j.IndexerProperty<Guid>("UserId").HasColumnName("user_id");
-                    j.IndexerProperty<Guid>("GroupId").HasColumnName("group_id");
-                });
-
-        // Relaciones muchos a muchos (User - Subject)
-        modelBuilder.Entity<User>()
-            .HasMany(u => u.Subjects)
-            .WithMany(s => s.Users)
-            .UsingEntity<Dictionary<string, object>>(
-                "UserSubject",
-                j => j.HasOne<Subject>().WithMany().HasForeignKey("SubjectId"),
-                j => j.HasOne<User>().WithMany().HasForeignKey("UserId"),
-                j =>
-                {
-                    j.ToTable("user_subjects");
-                    j.HasKey("UserId", "SubjectId");
-                    j.IndexerProperty<Guid>("UserId").HasColumnName("user_id");
-                    j.IndexerProperty<Guid>("SubjectId").HasColumnName("subject_id");
-                });
-
-        modelBuilder.Entity<User>()
-                .HasMany(u => u.Subjects)
-                .WithMany(s => s.Users)
+            entity.HasMany(d => d.Groups).WithMany(p => p.Users)
                 .UsingEntity<Dictionary<string, object>>(
-                    "UserSubjects",
-                    j => j.HasOne<Subject>().WithMany().HasForeignKey("SubjectId").OnDelete(DeleteBehavior.Cascade),
-                    j => j.HasOne<User>().WithMany().HasForeignKey("UserId").OnDelete(DeleteBehavior.Cascade)
-    );
+                    "UserGroup",
+                    r => r.HasOne<Group>().WithMany()
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.ClientSetNull)
+                        .HasConstraintName("user_groups_group_id_fkey"),
+                    l => l.HasOne<User>().WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.ClientSetNull)
+                        .HasConstraintName("user_groups_user_id_fkey"),
+                    j =>
+                    {
+                        j.HasKey("UserId", "GroupId").HasName("user_groups_pkey");
+                        j.ToTable("user_groups");
+                        j.IndexerProperty<Guid>("UserId").HasColumnName("user_id");
+                        j.IndexerProperty<Guid>("GroupId").HasColumnName("group_id");
+                    });
+
+            entity.HasMany(d => d.Subjects).WithMany(p => p.Users)
+                .UsingEntity<Dictionary<string, object>>(
+                    "UserSubject",
+                    r => r.HasOne<Subject>().WithMany()
+                        .HasForeignKey("SubjectId")
+                        .OnDelete(DeleteBehavior.ClientSetNull)
+                        .HasConstraintName("user_subjects_subject_id_fkey"),
+                    l => l.HasOne<User>().WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.ClientSetNull)
+                        .HasConstraintName("user_subjects_user_id_fkey"),
+                    j =>
+                    {
+                        j.HasKey("UserId", "SubjectId").HasName("user_subjects_pkey");
+                        j.ToTable("user_subjects");
+                        j.IndexerProperty<Guid>("UserId").HasColumnName("user_id");
+                        j.IndexerProperty<Guid>("SubjectId").HasColumnName("subject_id");
+                    });
+        });
 
         OnModelCreatingPartial(modelBuilder);
     }

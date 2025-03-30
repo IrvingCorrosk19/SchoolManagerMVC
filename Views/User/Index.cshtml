@@ -12,8 +12,7 @@
             <h3 class="card-title"><i class="fas fa-user-plus"></i> Crear / Editar Usuario</h3>
         </div>
         <div class="card-body">
-            <form id="userForm">
-                <!-- Campo oculto para saber si es edición -->
+            <form id="userForm" novalidate>
                 <input type="hidden" name="UserId" id="UserId" />
 
                 <div class="row">
@@ -21,12 +20,14 @@
                         <div class="form-group">
                             <label>Nombre Completo</label>
                             <input type="text" class="form-control" name="Name" placeholder="Nombre y apellidos" required>
+                            <div class="invalid-feedback">Nombre obligatorio.</div>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="form-group">
                             <label>Correo Electrónico</label>
                             <input type="email" class="form-control" name="Email" placeholder="correo@ejemplo.com" required>
+                            <div class="invalid-feedback">Correo obligatorio.</div>
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -98,7 +99,6 @@
         </div>
     </div>
 
-    <!-- Tabla de usuarios -->
     <div class="card">
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-users"></i> Gestión de Usuarios</h3>
@@ -128,7 +128,7 @@
                             <td>@user.Email</td>
                             <td>@user.Role</td>
                             <td>
-                                @if (user.Status == "active")
+                                @if (user.Status?.ToLowerInvariant() == "active")
                                 {
                                     <span class="badge bg-success">Activo</span>
                                 }
@@ -144,7 +144,6 @@
                                 <button type="button" class="btn btn-danger btn-sm btn-delete-user" data-id="@user.Id">
                                     <i class="fas fa-trash"></i> Eliminar
                                 </button>
-
                             </td>
                         </tr>
                     }
@@ -158,6 +157,9 @@
 @await Html.PartialAsync("~/Views/Shared/Partials/_GroupsPartial.cshtml")
 
 @section Scripts {
+    <link rel="stylesheet" href="~/lib/sweetalert2/sweetalert2.min.css" />
+    <script src="~/lib/sweetalert2/sweetalert2.min.js"></script>
+
     <script>
         $(document).ready(function () {
             $('#searchInput').on('keyup', function () {
@@ -179,10 +181,15 @@
             $('#roleSelect').on('change', toggleTeacherFields);
             toggleTeacherFields();
 
-            // Crear usuario
+            function showValidationErrors(user) {
+                const form = $('#userForm');
+                form.find('input, select').removeClass('is-invalid');
+                if (!user.Name) form.find('[name="Name"]').addClass('is-invalid');
+                if (!user.Email) form.find('[name="Email"]').addClass('is-invalid');
+            }
+
             $('#btnCreateUser').on('click', function () {
                 const form = $('#userForm');
-
                 const user = {
                     Name: form.find('[name="Name"]').val().trim(),
                     Email: form.find('[name="Email"]').val().trim(),
@@ -192,6 +199,9 @@
                     Groups: form.find('[name="Groups"]').val() || []
                 };
 
+                showValidationErrors(user);
+                if (!user.Name || !user.Email) return;
+
                 $.ajax({
                     url: '/User/CreateJson',
                     method: 'POST',
@@ -199,20 +209,27 @@
                     data: JSON.stringify(user)
                 })
                 .done(function (response) {
-                    alert(response.message || 'Usuario creado exitosamente');
-                    resetUserForm();
-                    location.reload();
+                    Swal.fire({
+                        icon: 'success',
+                        title: '¡Éxito!',
+                        text: response.message || 'Usuario creado exitosamente'
+                    }).then(() => {
+                        resetUserForm();
+                        location.reload();
+                    });
                 })
                 .fail(function (xhr) {
-                    console.error(xhr);
-                    alert('Error al crear el usuario');
+                    const message = xhr.responseJSON?.message || xhr.responseText || 'Error inesperado';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: message
+                    });
                 });
             });
 
-            // Actualizar usuario
             $('#btnUpdateUser').on('click', function () {
                 const form = $('#userForm');
-
                 const user = {
                     Id: $('#UserId').val(),
                     Name: form.find('[name="Name"]').val().trim(),
@@ -223,6 +240,9 @@
                     Groups: form.find('[name="Groups"]').val() || []
                 };
 
+                showValidationErrors(user);
+                if (!user.Name || !user.Email) return;
+
                 $.ajax({
                     url: '/User/UpdateJson',
                     method: 'POST',
@@ -230,17 +250,25 @@
                     data: JSON.stringify(user)
                 })
                 .done(function (response) {
-                    alert(response.message || 'Usuario actualizado correctamente');
-                    resetUserForm();
-                    location.reload();
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Actualizado',
+                        text: response.message || 'Usuario actualizado correctamente'
+                    }).then(() => {
+                        resetUserForm();
+                        location.reload();
+                    });
                 })
                 .fail(function (xhr) {
-                    console.error(xhr);
-                    alert('Error al actualizar el usuario');
+                    const message = xhr.responseJSON?.message || xhr.responseText || 'Error inesperado';
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: message
+                    });
                 });
             });
 
-            // Editar usuario (cargar en formulario)
             $('.btn-edit-user').on('click', function () {
                 const userId = $(this).data('id');
 
@@ -260,37 +288,46 @@
                 });
             });
 
-            // Reset
+            $('.btn-delete-user').on('click', function () {
+                const userId = $(this).data('id');
+                const userName = $(this).closest('tr').find('td:first').text();
+
+                Swal.fire({
+                    title: `¿Eliminar a "${userName}"?`,
+                    text: "Esta acción no se puede deshacer.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/User/DeleteConfirmed/${userId}`,
+                            type: 'POST'
+                        })
+                        .done(function () {
+                            Swal.fire('Eliminado', 'Usuario eliminado correctamente', 'success')
+                                .then(() => location.reload());
+                        })
+                        .fail(function (xhr) {
+                            const message = xhr.responseJSON?.message || xhr.responseText || 'Error inesperado';
+                            Swal.fire('Error', message, 'error');
+                        });
+                    }
+                });
+            });
+
             function resetUserForm() {
                 const form = $('#userForm');
-
                 form[0].reset();
                 $('#UserId').val('');
                 $('#btnUpdateUser').prop('disabled', true);
                 $('#btnCreateUser').prop('disabled', false);
+                form.find('input, select').removeClass('is-invalid');
                 toggleTeacherFields();
             }
         });
-
-                // Eliminar usuario
-        $('.btn-delete-user').on('click', function () {
-            const userId = $(this).data('id');
-
-            if (!confirm('¿Estás seguro de que deseas eliminar este usuario?')) return;
-
-            $.ajax({
-                url: `/User/DeleteConfirmed/${userId}`,
-                type: 'POST'
-            })
-            .done(function () {
-                alert('Usuario eliminado correctamente');
-                location.reload(); // O puedes eliminar la fila directamente si quieres
-            })
-            .fail(function (xhr) {
-                console.error(xhr);
-                alert('Error al eliminar el usuario');
-            });
-        });
-
     </script>
 }

@@ -2,6 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using SchoolManager.Mappings;
 using SchoolManager.Models;
 using AutoMapper;
+using SchoolManager.Services.Implementations;
+using SchoolManager.Services.Interfaces;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +14,7 @@ builder.Services.AddControllersWithViews();
 // Conexión a la base de datos PostgreSQL
 builder.Services.AddDbContext<SchoolDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 
 // Registrando todos los servicios con inyección de dependencias
 builder.Services.AddScoped<ISchoolService, SchoolService>();
@@ -28,6 +31,14 @@ builder.Services.AddScoped<ISecuritySettingService, SecuritySettingService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IParentService, ParentService>();
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
+builder.Services.AddScoped<IStudentReportService, StudentReportService>();
+builder.Services.AddScoped<IGradeLevelService, GradeLevelService>();
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
+    });
 
 
 var app = builder.Build();

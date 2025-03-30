@@ -26,7 +26,7 @@ public class TeacherAssignmentController : Controller
 
     public async Task<IActionResult> Index()
     {
-        var userId = Guid.Parse("8879de76-1af9-411e-a594-a4afe8a0b557");
+        var userId = Guid.Parse("11c0c558-f0a9-48d6-94fc-4775582d833c");
         var userTeacher = await _userService.GetByIdWithRelationsAsync(userId);
 
         if (userTeacher == null)

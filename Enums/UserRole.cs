@@ -4,6 +4,7 @@
     {
         Admin,
         Director,
-        Teacher
+        Teacher,
+        Estudiante
     }
 }

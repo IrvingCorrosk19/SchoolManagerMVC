@@ -1,0 +1,50 @@
+﻿@model SchoolManager.ViewModels.AcademicCatalogViewModel
+
+@{
+    ViewData["Title"] = "Catálogo Académico";
+    Layout = "_AdminLayout";
+}
+
+<div class="container-fluid">
+    <h3>Catálogo Académico</h3>
+
+    <ul class="nav nav-tabs" id="catalogTabs" role="tablist">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#grades">Grados</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#groups">Grupos</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#subjects">Materias</a>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-3">
+        <div class="tab-pane fade show active" id="grades">
+            @await Html.PartialAsync("~/Views/Shared/Partials/_GradesPartial.cshtml", Model.GradesLevel)
+        </div>
+        <div class="tab-pane fade" id="groups">
+            @await Html.PartialAsync("~/Views/Shared/Partials/_GroupsPartial.cshtml", Model.Groups)
+        </div>
+        <div class="tab-pane fade" id="subjects">
+            @await Html.PartialAsync("~/Views/Shared/Partials/_SubjectsPartial.cshtml", Model.Subjects)
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            $('a[data-bs-toggle="tab"]').on('shown.bs.tab', function (e) {
+                const target = $(e.target).attr('href');
+                console.log("Se abrió la pestaña:", target);
+            });
+        });
+    </script>
+
+    @await Html.PartialAsync("~/Views/Shared/Partials/_GradesScripts.cshtml")
+    @await Html.PartialAsync("~/Views/Shared/Partials/_GroupsScripts.cshtml")
+    @await Html.PartialAsync("~/Views/Shared/Partials/_SubjectsScripts.cshtml")
+}
+
