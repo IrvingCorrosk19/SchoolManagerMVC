@@ -69,12 +69,22 @@ public class GroupController : Controller
     [HttpPost]
     public async Task<IActionResult> Delete([FromForm] Guid id)
     {
-        var existing = await _groupService.GetByIdAsync(id);
-        if (existing == null) return NotFound();
+        try
+        {
+            var existing = await _groupService.GetByIdAsync(id);
+            if (existing == null)
+                return NotFound(new { success = false, message = "Grupo no encontrado." });
 
-        await _groupService.DeleteAsync(id);
-        return Ok();
+            await _groupService.DeleteAsync(id);
+            return Ok(new { success = true, message = "Grupo eliminado correctamente." });
+        }
+        catch (Exception ex)
+        {
+            // Puedes registrar el error aquí si tienes un sistema de logging
+            return StatusCode(500, new { success = false, message = "Ocurrió un error al eliminar el grupo.", error = ex.Message });
+        }
     }
+
 
     // ⚠️ Opcional: puedes eliminar estos si no usas vistas tradicionales:
     public async Task<IActionResult> Details(Guid id)

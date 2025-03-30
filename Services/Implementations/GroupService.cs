@@ -42,11 +42,21 @@ public class GroupService : IGroupService
 
     public async Task DeleteAsync(Guid id)
     {
-        var group = await _context.Groups.FindAsync(id);
-        if (group != null)
+        try
         {
-            _context.Groups.Remove(group);
-            await _context.SaveChangesAsync();
+            var group = await _context.Groups.FindAsync(id);
+            if (group != null)
+            {
+                _context.Groups.Remove(group);
+                await _context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Puedes registrar el error aquí si tienes un logger, por ejemplo:
+            // _logger.LogError(ex, "Error al eliminar el grupo con ID: {id}", id);
+            throw new Exception("Error al eliminar el grupo.", ex);
         }
     }
+
 }

@@ -34,11 +34,21 @@ public class SubjectService : ISubjectService
 
     public async Task DeleteAsync(Guid id)
     {
-        var subject = await _context.Subjects.FindAsync(id);
-        if (subject != null)
+        try
         {
-            _context.Subjects.Remove(subject);
-            await _context.SaveChangesAsync();
+            var subject = await _context.Subjects.FindAsync(id);
+            if (subject != null)
+            {
+                _context.Subjects.Remove(subject);
+                await _context.SaveChangesAsync();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Puedes registrar el error si tienes un sistema de logging, por ejemplo:
+            // _logger.LogError(ex, "Error al eliminar la materia con ID: {id}", id);
+            throw new Exception("Error al eliminar la materia.", ex);
         }
     }
+
 }

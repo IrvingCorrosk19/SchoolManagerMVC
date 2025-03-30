@@ -23,7 +23,7 @@ public class SubjectController : Controller
         return View(subject);
     }
 
-    public IActionResult Create() => View();
+    //public IActionResult Create() => View();
 
     [HttpPost]
     public async Task<IActionResult> Create(Subject subject)
