@@ -9,7 +9,6 @@ public class UserService : IUserService
     {
         _context = context;
     }
-
     public async Task UpdateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds)
     {
         // Actualizar Subjects
@@ -37,21 +36,52 @@ public class UserService : IUserService
         _context.Users.Update(user);
         await _context.SaveChangesAsync();
     }
+    public async Task UpdateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds, List<Guid> gradeLevelIds)
+    {
+        // Actualizar Subjects
+        user.Subjects.Clear();
+        if (subjectIds.Any())
+        {
+            var subjects = await _context.Subjects.Where(s => subjectIds.Contains(s.Id)).ToListAsync();
+            foreach (var subject in subjects)
+            {
+                user.Subjects.Add(subject);
+            }
+        }
 
-    public async Task<User?> GetByIdWithRelationsAsync(Guid id)
+
+        // Actualizar Groups
+        user.Groups.Clear();
+        if (groupIds.Any())
+        {
+            var groups = await _context.Groups.Where(g => groupIds.Contains(g.Id)).ToListAsync();
+            foreach (var group in groups)
+            {
+                user.Groups.Add(group);
+            }
+        }
+
+        // Actualizar GradeLevels
+        user.Grades.Clear();
+        if (gradeLevelIds.Any())
+        {
+            var grades = await _context.GradeLevels.Where(g => gradeLevelIds.Contains(g.Id)).ToListAsync();
+            foreach (var grade in grades)
+            {
+                user.Grades.Add(grade);
+            }
+        }
+
+        _context.Users.Update(user);
+        await _context.SaveChangesAsync();
+    }
+    public async Task<List<User>> GetAllTeachersAsync()
     {
         return await _context.Users
-            .Include(u => u.Subjects)
-            .Include(u => u.Groups)
-            .FirstOrDefaultAsync(u => u.Id == id);
+            .Where(u => u.Role == "teacher")
+            .OrderBy(u => u.Name)
+            .ToListAsync();
     }
-
-    public async Task<List<User>> GetAllAsync() =>
-        await _context.Users.ToListAsync();
-
-    public async Task<User?> GetByIdAsync(Guid id) =>
-        await _context.Users.FindAsync(id);
-
     public async Task CreateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds)
     {
         try
@@ -74,7 +104,41 @@ public class UserService : IUserService
             throw new Exception("Error al crear el usuario y asignar relaciones.", ex);
         }
     }
+    public async Task<User?> GetByIdWithRelationsAsync(Guid id)
+    {
+        return await _context.Users
+            .Include(u => u.Subjects)
+            .Include(u => u.Groups)
+            .Include(u => u.Grades)
+            .FirstOrDefaultAsync(u => u.Id == id);
+    }
 
+    public async Task<List<User>> GetAllAsync() =>
+        await _context.Users.ToListAsync();
+
+    public async Task<User?> GetByIdAsync(Guid id) =>
+        await _context.Users.FindAsync(id);
+
+    public async Task CreateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds, List<Guid> gradeLevelIds)
+    {
+        try
+        {
+            var subjects = await _context.Subjects.Where(s => subjectIds.Contains(s.Id)).ToListAsync();
+            var groups = await _context.Groups.Where(g => groupIds.Contains(g.Id)).ToListAsync();
+            var grades = await _context.GradeLevels.Where(g => gradeLevelIds.Contains(g.Id)).ToListAsync();
+
+            user.Subjects = subjects;
+            user.Groups = groups;
+            user.Grades = grades;
+
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error al crear el usuario y asignar relaciones.", ex);
+        }
+    }
 
     public async Task UpdateAsync(User user)
     {
@@ -87,20 +151,20 @@ public class UserService : IUserService
         var user = await _context.Users
             .Include(u => u.Subjects)
             .Include(u => u.Groups)
+            .Include(u => u.Grades)
             .FirstOrDefaultAsync(u => u.Id == id);
 
         if (user == null) return;
 
-        // Limpiar relaciones muchos a muchos
         user.Subjects.Clear();
         user.Groups.Clear();
+        user.Grades.Clear();
 
-        await _context.SaveChangesAsync(); // Guardar después de limpiar relaciones
+        await _context.SaveChangesAsync();
 
         _context.Users.Remove(user);
-        await _context.SaveChangesAsync(); // Ahora eliminar usuario
+        await _context.SaveChangesAsync();
     }
-
 
     public async Task<User?> AuthenticateAsync(string email, string password)
     {
