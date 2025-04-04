@@ -3,13 +3,13 @@ using System.Collections.Generic;
 
 namespace SchoolManager.Models;
 
-public partial class TeacherAssignment
+public partial class StudentAssignment
 {
     public Guid Id { get; set; }
 
-    public Guid TeacherId { get; set; }
+    public Guid StudentId { get; set; }
 
-    public Guid SubjectId { get; set; }
+    //public Guid SubjectId { get; set; }
 
     public Guid GradeId { get; set; }
 
@@ -21,7 +21,7 @@ public partial class TeacherAssignment
 
     public virtual Group Group { get; set; } = null!;
 
-    public virtual Subject Subject { get; set; } = null!;
+    public virtual User Student { get; set; } = null!;
 
-    public virtual User Teacher { get; set; } = null!;
+    //public virtual Subject Subject { get; set; } = null!;
 }

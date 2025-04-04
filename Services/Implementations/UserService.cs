@@ -9,6 +9,15 @@ public class UserService : IUserService
     {
         _context = context;
     }
+
+    public async Task<List<User>> GetAllStudentsAsync()
+    {
+        return await _context.Users
+            .Where(u => u.Role.ToLower() == "student" || u.Role.ToLower() == "estudiante")
+            .OrderBy(u => u.Name)
+            .ToListAsync();
+    }
+
     public async Task UpdateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds)
     {
         // Actualizar Subjects

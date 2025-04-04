@@ -37,6 +37,7 @@ public partial class SchoolDbContext : DbContext
     public virtual DbSet<Subject> Subjects { get; set; }
 
     public virtual DbSet<TeacherAssignment> TeacherAssignments { get; set; }
+    //public virtual DbSet<StudentAssignment> StudentAssignments { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 

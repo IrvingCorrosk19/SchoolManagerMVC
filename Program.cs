@@ -4,6 +4,8 @@ using SchoolManager.Models;
 using AutoMapper;
 using SchoolManager.Services.Implementations;
 using SchoolManager.Services.Interfaces;
+using SchoolManager.Application.Interfaces;
+using SchoolManager.Infrastructure.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,6 +35,9 @@ builder.Services.AddScoped<IParentService, ParentService>();
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
 builder.Services.AddScoped<IStudentReportService, StudentReportService>();
 builder.Services.AddScoped<IGradeLevelService, GradeLevelService>();
+builder.Services.AddScoped<IAcademicAssignmentService, AcademicAssignmentService>();
+builder.Services.AddScoped<IStudentAssignmentService, StudentAssignmentService>();
+
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

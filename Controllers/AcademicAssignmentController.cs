@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using SchoolManager.Application.Interfaces;
+using SchoolManager.Infrastructure.Services;
 using SchoolManager.Models;
 using SchoolManager.ViewModels;
 using System;
@@ -12,19 +14,22 @@ public class AcademicAssignmentController : Controller
     private readonly ISubjectService _subjectService;
     private readonly IGroupService _groupService;
     private readonly IGradeLevelService _gradeLevelService;
+    private readonly IAcademicAssignmentService _academicAssignmentService;
 
     public AcademicAssignmentController(
         ITeacherAssignmentService teacherAssignmentService,
         IUserService userService,
         ISubjectService subjectService,
         IGroupService groupService,
-        IGradeLevelService gradeLevelService)
+        IGradeLevelService gradeLevelService,
+        IAcademicAssignmentService academicAssignmentService)
     {
         _teacherAssignmentService = teacherAssignmentService;
         _userService = userService;
         _subjectService = subjectService;
         _groupService = groupService;
         _gradeLevelService = gradeLevelService;
+        _academicAssignmentService= academicAssignmentService;
     }
 
     // Mostrar listado de profesores y formulario de asignación
@@ -38,24 +43,86 @@ public class AcademicAssignmentController : Controller
         return View(user);
     }
 
-    // Mostrar asignaciones actuales de un profesor seleccionado (AJAX)
-    [HttpGet]
-    public async Task<IActionResult> GetAssignments(Guid userId)
+    [HttpGet("Assign")]
+    public async Task<IActionResult> Assign(Guid id)
     {
-        var user = await _userService.GetByIdWithRelationsAsync(userId);
-        if (user == null)
-            return NotFound();
+        var teacher = await _userService.GetByIdAsync(id);
+        var subjects = (await _subjectService.GetAllAsync()).ToList();
+        var grades = (await _gradeLevelService.GetAllAsync()).ToList();
+        var groups = (await _groupService.GetAllAsync()).ToList();
 
-        var viewModel = new TeacherActivityViewModel
+        var viewModel = new AssignViewModel
         {
-            UserId = user.Id,
-            Groups = user.Groups.OrderBy(g => g.Name).ToList(),
-            Subjects = user.Subjects.OrderBy(s => s.Name).ToList(),
-
+            Teacher = teacher,
+            Subjects = subjects,
+            Grades = grades,
+            Groups = groups
         };
 
-        return PartialView("_AssignmentsPartial", viewModel); // Se cargará con AJAX
+        return View("Assign", viewModel);
     }
+
+    [HttpPost]
+    public async Task<IActionResult> GuardarAsignacion([FromBody] TeacherAssignmentRequest request)
+    {
+        if (request.GroupIds == null || !request.GroupIds.Any())
+        {
+            return BadRequest(new { success = false, message = "Debe seleccionar al menos un grupo." });
+        }
+
+        var insertedGroupIds = new List<Guid>();
+
+        foreach (var groupId in request.GroupIds)
+        {
+            var inserted = await _academicAssignmentService.AssignTeacherAsync(
+                request.UserId,
+                request.SubjectId,
+                request.GradeId,
+                groupId
+            );
+
+            if (inserted)
+            {
+                insertedGroupIds.Add(groupId);
+            }
+        }
+
+        if (!insertedGroupIds.Any())
+        {
+            return Ok(new
+            {
+                success = false,
+                message = "Estas combinaciones ya existen. No se guardaron nuevas asignaciones."
+            });
+        }
+
+        var subject = await _subjectService.GetByIdAsync(request.SubjectId);
+        var grade = await _gradeLevelService.GetByIdAsync(request.GradeId);
+        var allGroups = await _groupService.GetAllAsync();
+
+        var insertedGroupNames = allGroups
+            .Where(g => insertedGroupIds.Contains(g.Id))
+            .Select(g => g.Name)
+            .ToList();
+
+        var response = new
+        {
+            request.UserId,
+            request.SubjectId,
+            SubjectName = subject?.Name,
+            request.GradeId,
+            GradeName = grade?.Name,
+            GroupIds = insertedGroupIds,
+            GroupNames = insertedGroupNames,
+            success = true,
+            message = "Asignación guardada correctamente."
+        };
+
+        return Ok(response);
+    }
+
+
+
 
     [HttpPost]
     public async Task<IActionResult> UpdateAssignments(Guid userId, List<Guid> subjectIds, List<Guid> groupIds, List<Guid> gradeLevelIds)

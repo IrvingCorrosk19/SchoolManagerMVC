@@ -23,6 +23,8 @@ public partial class Subject
 
     public virtual School? School { get; set; }
 
+    //public virtual ICollection<StudentAssignment> StudentAssignments { get; set; } = new List<StudentAssignment>();
+
     public virtual ICollection<TeacherAssignment> TeacherAssignments { get; set; } = new List<TeacherAssignment>();
 
     public virtual ICollection<User> Users { get; set; } = new List<User>();

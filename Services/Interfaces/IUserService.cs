@@ -10,6 +10,7 @@ public interface IUserService
     Task CreateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds);
     Task UpdateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds, List<Guid> gradeLevelIds);
     Task UpdateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds);
+    Task<List<User>> GetAllStudentsAsync();
 
     Task UpdateAsync(User user);
     Task DeleteAsync(Guid id);
