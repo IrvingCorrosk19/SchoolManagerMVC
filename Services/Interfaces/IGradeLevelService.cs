@@ -10,4 +10,6 @@ public interface IGradeLevelService
     Task<GradeLevel> CreateAsync(GradeLevel gradeLevel);
     Task<GradeLevel> UpdateAsync(GradeLevel gradeLevel);
     Task<bool> DeleteAsync(Guid id);
+    Task<GradeLevel> GetOrCreateAsync(string name);
+
 }

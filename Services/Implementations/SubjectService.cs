@@ -9,6 +9,22 @@ public class SubjectService : ISubjectService
     {
         _context = context;
     }
+    public async Task<Subject> GetOrCreateAsync(string name)
+    {
+        name = name.Trim().ToUpper();
+        var subject = await _context.Subjects.FirstOrDefaultAsync(s => s.Name.ToUpper() == name);
+        if (subject == null)
+        {
+            subject = new Subject
+            {
+                Id = Guid.NewGuid(),
+                Name = name
+            };
+            _context.Subjects.Add(subject);
+            await _context.SaveChangesAsync();
+        }
+        return subject;
+    }
 
     public async Task<List<Subject>> GetAllAsync() =>
         await _context.Subjects.ToListAsync();

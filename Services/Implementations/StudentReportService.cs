@@ -21,27 +21,10 @@ namespace SchoolManager.Services.Implementations
             if (student == null)
                 throw new Exception("Estudiante no encontrado");
 
-            // Obtener calificaciones del trimestre
-            var grades = await _context.Grades
-                .Include(g => g.Activity)
-                    .ThenInclude(a => a.Subject)
-                .Include(g => g.Activity)
-                    .ThenInclude(a => a.Teacher)
-                .Where(g => g.StudentId == studentId && g.Activity.Trimester == trimester)
-                .Select(g => new GradeDto
-                {
-                    Subject = g.Activity.Subject.Name,
-                    Teacher = g.Activity.Teacher.Name,
-                    ActivityName = g.Activity.Name,
-                    Type = g.Activity.Type,
-                    Value = g.Value ?? 0,
-                    CreatedAt = g.CreatedAt ?? DateTime.MinValue
-                })
-                .ToListAsync();
 
             // Obtener asistencias del trimestre
             var trimesterMonths = GetMonthsByTrimester(trimester);
-            var attendanceRecords = await _context.Attendance
+            var attendanceRecords = await _context.Attendances
                 .Where(a => a.StudentId == studentId && trimesterMonths.Contains(a.Date.Month))
                 .ToListAsync();
 
@@ -60,7 +43,6 @@ namespace SchoolManager.Services.Implementations
             {
                 StudentName = student.Name,
                 Grade = student.Grade ?? "N/A",
-                Grades = grades,
                 Attendance = attendanceGrouped
             };
         }

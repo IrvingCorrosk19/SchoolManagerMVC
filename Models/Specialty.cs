@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace SchoolManager.Models;
 
-public partial class GradeLevel
+public partial class Specialty
 {
     public Guid Id { get; set; }
 
@@ -13,9 +13,5 @@ public partial class GradeLevel
 
     public DateTime? CreatedAt { get; set; }
 
-    public virtual ICollection<StudentAssignment> StudentAssignments { get; set; } = new List<StudentAssignment>();
-
     public virtual ICollection<SubjectAssignment> SubjectAssignments { get; set; } = new List<SubjectAssignment>();
-
-    public virtual ICollection<User> Users { get; set; } = new List<User>();
 }

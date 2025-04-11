@@ -9,6 +9,24 @@ public class GroupService : IGroupService
         _context = context;
     }
 
+    public async Task<Group> GetOrCreateAsync(string name)
+    {
+        name = name.Trim().ToUpper();
+        var group = await _context.Groups.FirstOrDefaultAsync(g => g.Name.ToUpper() == name);
+        if (group == null)
+        {
+            group = new Group
+            {
+                Id = Guid.NewGuid(),
+                Name = name,
+                CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
+            };
+            _context.Groups.Add(group);
+            await _context.SaveChangesAsync();
+        }
+        return group;
+    }
+
     public async Task<List<Group>> GetAllAsync() =>
         await _context.Groups.ToListAsync();
 

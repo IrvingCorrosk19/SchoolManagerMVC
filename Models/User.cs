@@ -25,6 +25,8 @@ public partial class User
 
     public DateTime? CreatedAt { get; set; }
 
+    public string? LastName { get; set; }
+
     public virtual ICollection<Activity> Activities { get; set; } = new List<Activity>();
 
     public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
@@ -34,6 +36,8 @@ public partial class User
     public virtual ICollection<DisciplineReport> DisciplineReports { get; set; } = new List<DisciplineReport>();
 
     public virtual School? School { get; set; }
+
+    public virtual ICollection<StudentAssignment> StudentAssignments { get; set; } = new List<StudentAssignment>();
 
     public virtual ICollection<Student> Students { get; set; } = new List<Student>();
 

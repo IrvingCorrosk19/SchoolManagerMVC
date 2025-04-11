@@ -1,4 +1,5 @@
 ﻿using SchoolManager.Models;
+using SchoolManager.ViewModels;
 
 public interface ITeacherAssignmentService
 {
@@ -7,4 +8,6 @@ public interface ITeacherAssignmentService
     Task CreateAsync(TeacherAssignment assignment);
     Task UpdateAsync(TeacherAssignment assignment);
     Task DeleteAsync(Guid id);
+    Task<bool> AssignTeacherAsync(TeacherAssignmentRequest request);
+
 }

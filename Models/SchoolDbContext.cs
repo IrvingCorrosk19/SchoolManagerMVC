@@ -17,13 +17,13 @@ public partial class SchoolDbContext : DbContext
 
     public virtual DbSet<Activity> Activities { get; set; }
 
-    public virtual DbSet<Attendance> Attendance { get; set; }
+    public virtual DbSet<Area> Areas { get; set; }
+
+    public virtual DbSet<Attendance> Attendances { get; set; }
 
     public virtual DbSet<AuditLog> AuditLogs { get; set; }
 
     public virtual DbSet<DisciplineReport> DisciplineReports { get; set; }
-
-    public virtual DbSet<Grade> Grades { get; set; }
 
     public virtual DbSet<GradeLevel> GradeLevels { get; set; }
 
@@ -33,9 +33,15 @@ public partial class SchoolDbContext : DbContext
 
     public virtual DbSet<SecuritySetting> SecuritySettings { get; set; }
 
+    public virtual DbSet<Specialty> Specialties { get; set; }
+
     public virtual DbSet<Student> Students { get; set; }
 
+    public virtual DbSet<StudentAssignment> StudentAssignments { get; set; }
+
     public virtual DbSet<Subject> Subjects { get; set; }
+
+    public virtual DbSet<SubjectAssignment> SubjectAssignments { get; set; }
 
     public virtual DbSet<TeacherAssignment> TeacherAssignments { get; set; }
 
@@ -47,7 +53,9 @@ public partial class SchoolDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasPostgresExtension("uuid-ossp");
+        modelBuilder
+            .HasPostgresExtension("pgcrypto")
+            .HasPostgresExtension("uuid-ossp");
 
         modelBuilder.Entity<Activity>(entity =>
         {
@@ -93,6 +101,25 @@ public partial class SchoolDbContext : DbContext
             entity.HasOne(d => d.Teacher).WithMany(p => p.Activities)
                 .HasForeignKey(d => d.TeacherId)
                 .HasConstraintName("activities_teacher_id_fkey");
+        });
+
+        modelBuilder.Entity<Area>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("area_pkey");
+
+            entity.ToTable("area");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Name)
+                .HasMaxLength(100)
+                .HasColumnName("name");
         });
 
         modelBuilder.Entity<Attendance>(entity =>
@@ -194,28 +221,6 @@ public partial class SchoolDbContext : DbContext
             entity.HasOne(d => d.Teacher).WithMany(p => p.DisciplineReports)
                 .HasForeignKey(d => d.TeacherId)
                 .HasConstraintName("discipline_reports_teacher_id_fkey");
-        });
-
-        modelBuilder.Entity<Grade>(entity =>
-        {
-            entity.HasKey(e => e.Id).HasName("grades_pkey");
-
-            entity.ToTable("grades");
-
-            entity.Property(e => e.Id)
-                .HasDefaultValueSql("uuid_generate_v4()")
-                .HasColumnName("id");
-            entity.Property(e => e.ActivityId).HasColumnName("activity_id");
-            entity.Property(e => e.CreatedAt)
-                .HasDefaultValueSql("CURRENT_TIMESTAMP")
-                .HasColumnType("timestamp without time zone")
-                .HasColumnName("created_at");
-            entity.Property(e => e.StudentId).HasColumnName("student_id");
-            entity.Property(e => e.Value)
-                .HasPrecision(3, 1)
-                .HasColumnName("value");
-
-
         });
 
         modelBuilder.Entity<GradeLevel>(entity =>
@@ -337,6 +342,27 @@ public partial class SchoolDbContext : DbContext
                 .HasConstraintName("security_settings_school_id_fkey");
         });
 
+        modelBuilder.Entity<Specialty>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("specialties_pkey");
+
+            entity.ToTable("specialties");
+
+            entity.HasIndex(e => e.Name, "specialties_name_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Name)
+                .HasMaxLength(100)
+                .HasColumnName("name");
+        });
+
         modelBuilder.Entity<Student>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("students_pkey");
@@ -373,13 +399,44 @@ public partial class SchoolDbContext : DbContext
                 .HasConstraintName("students_school_id_fkey");
         });
 
+        modelBuilder.Entity<StudentAssignment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("student_assignments_pkey");
+
+            entity.ToTable("student_assignments");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.GradeId).HasColumnName("grade_id");
+            entity.Property(e => e.GroupId).HasColumnName("group_id");
+            entity.Property(e => e.StudentId).HasColumnName("student_id");
+
+            entity.HasOne(d => d.Grade).WithMany(p => p.StudentAssignments)
+                .HasForeignKey(d => d.GradeId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_grade");
+
+            entity.HasOne(d => d.Group).WithMany(p => p.StudentAssignments)
+                .HasForeignKey(d => d.GroupId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_group");
+
+            entity.HasOne(d => d.Student).WithMany(p => p.StudentAssignments)
+                .HasForeignKey(d => d.StudentId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("fk_student");
+        });
+
         modelBuilder.Entity<Subject>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("subjects_pkey");
 
             entity.ToTable("subjects");
-
-            entity.HasIndex(e => e.Code, "subjects_code_key").IsUnique();
 
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("uuid_generate_v4()")
@@ -406,33 +463,79 @@ public partial class SchoolDbContext : DbContext
                 .HasConstraintName("subjects_school_id_fkey");
         });
 
+        modelBuilder.Entity<SubjectAssignment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("subject_assignments_pkey");
+
+            entity.ToTable("subject_assignments");
+
+            entity.HasIndex(e => new { e.SpecialtyId, e.AreaId, e.SubjectId, e.GradeLevelId, e.GroupId }, "subject_assignments_specialty_id_area_id_subject_id_grade_l_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.AreaId).HasColumnName("area_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.GradeLevelId).HasColumnName("grade_level_id");
+            entity.Property(e => e.GroupId).HasColumnName("group_id");
+            entity.Property(e => e.SpecialtyId).HasColumnName("specialty_id");
+            entity.Property(e => e.SubjectId).HasColumnName("subject_id");
+
+            entity.HasOne(d => d.Area).WithMany(p => p.SubjectAssignments)
+                .HasForeignKey(d => d.AreaId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("subject_assignments_area_id_fkey");
+
+            entity.HasOne(d => d.GradeLevel).WithMany(p => p.SubjectAssignments)
+                .HasForeignKey(d => d.GradeLevelId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("subject_assignments_grade_level_id_fkey");
+
+            entity.HasOne(d => d.Group).WithMany(p => p.SubjectAssignments)
+                .HasForeignKey(d => d.GroupId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("subject_assignments_group_id_fkey");
+
+            entity.HasOne(d => d.Specialty).WithMany(p => p.SubjectAssignments)
+                .HasForeignKey(d => d.SpecialtyId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("subject_assignments_specialty_id_fkey");
+
+            entity.HasOne(d => d.Subject).WithMany(p => p.SubjectAssignments)
+                .HasForeignKey(d => d.SubjectId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("subject_assignments_subject_id_fkey");
+        });
+
         modelBuilder.Entity<TeacherAssignment>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("teacher_assignments_pkey");
 
             entity.ToTable("teacher_assignments");
 
+            entity.HasIndex(e => new { e.TeacherId, e.SubjectAssignmentId }, "teacher_assignments_teacher_id_subject_assignment_id_key").IsUnique();
+
             entity.Property(e => e.Id)
-                .HasDefaultValueSql("uuid_generate_v4()")
+                .HasDefaultValueSql("gen_random_uuid()")
                 .HasColumnName("id");
             entity.Property(e => e.CreatedAt)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
-            entity.Property(e => e.GroupId).HasColumnName("group_id");
-            entity.Property(e => e.SubjectId).HasColumnName("subject_id");
+            entity.Property(e => e.SubjectAssignmentId).HasColumnName("subject_assignment_id");
             entity.Property(e => e.TeacherId).HasColumnName("teacher_id");
 
-            entity.HasOne(d => d.Group).WithMany(p => p.TeacherAssignments)
-                .HasForeignKey(d => d.GroupId)
-                .HasConstraintName("teacher_assignments_group_id_fkey");
-
-            entity.HasOne(d => d.Subject).WithMany(p => p.TeacherAssignments)
-                .HasForeignKey(d => d.SubjectId)
-                .HasConstraintName("teacher_assignments_subject_id_fkey");
+            entity.HasOne(d => d.SubjectAssignment).WithMany(p => p.TeacherAssignments)
+                .HasForeignKey(d => d.SubjectAssignmentId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("teacher_assignments_subject_assignment_id_fkey");
 
             entity.HasOne(d => d.Teacher).WithMany(p => p.TeacherAssignments)
                 .HasForeignKey(d => d.TeacherId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("teacher_assignments_teacher_id_fkey");
         });
 
@@ -457,6 +560,9 @@ public partial class SchoolDbContext : DbContext
             entity.Property(e => e.LastLogin)
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("last_login");
+            entity.Property(e => e.LastName)
+                .HasMaxLength(100)
+                .HasColumnName("last_name");
             entity.Property(e => e.Name)
                 .HasMaxLength(100)
                 .HasColumnName("name");
@@ -478,17 +584,36 @@ public partial class SchoolDbContext : DbContext
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("users_school_id_fkey");
 
+            entity.HasMany(d => d.Grades).WithMany(p => p.Users)
+                .UsingEntity<Dictionary<string, object>>(
+                    "UserGrade",
+                    r => r.HasOne<GradeLevel>().WithMany()
+                        .HasForeignKey("GradeId")
+                        .OnDelete(DeleteBehavior.ClientSetNull)
+                        .HasConstraintName("fk_user_grades_grade"),
+                    l => l.HasOne<User>().WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.ClientSetNull)
+                        .HasConstraintName("fk_user_grades_user"),
+                    j =>
+                    {
+                        j.HasKey("UserId", "GradeId").HasName("user_grades_pkey");
+                        j.ToTable("user_grades");
+                        j.IndexerProperty<Guid>("UserId").HasColumnName("user_id");
+                        j.IndexerProperty<Guid>("GradeId").HasColumnName("grade_id");
+                    });
+
             entity.HasMany(d => d.Groups).WithMany(p => p.Users)
                 .UsingEntity<Dictionary<string, object>>(
                     "UserGroup",
                     r => r.HasOne<Group>().WithMany()
                         .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("user_groups_group_id_fkey"),
+                        .HasConstraintName("fk_user_groups_group"),
                     l => l.HasOne<User>().WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("user_groups_user_id_fkey"),
+                        .HasConstraintName("fk_user_groups_user"),
                     j =>
                     {
                         j.HasKey("UserId", "GroupId").HasName("user_groups_pkey");
@@ -503,11 +628,11 @@ public partial class SchoolDbContext : DbContext
                     r => r.HasOne<Subject>().WithMany()
                         .HasForeignKey("SubjectId")
                         .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("user_subjects_subject_id_fkey"),
+                        .HasConstraintName("fk_user_subjects_subject"),
                     l => l.HasOne<User>().WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.ClientSetNull)
-                        .HasConstraintName("user_subjects_user_id_fkey"),
+                        .HasConstraintName("fk_user_subjects_user"),
                     j =>
                     {
                         j.HasKey("UserId", "SubjectId").HasName("user_subjects_pkey");

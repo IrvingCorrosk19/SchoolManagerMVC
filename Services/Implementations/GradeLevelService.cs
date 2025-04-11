@@ -9,6 +9,23 @@ public class GradeLevelService : IGradeLevelService
     {
         _context = context;
     }
+    public async Task<GradeLevel> GetOrCreateAsync(string name)
+    {
+        name = name.Trim().ToUpper();
+        var grade = await _context.GradeLevels.FirstOrDefaultAsync(g => g.Name.ToUpper() == name);
+        if (grade == null)
+        {
+            grade = new GradeLevel
+            {
+                Id = Guid.NewGuid(),
+                Name = name,
+                CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
+            };
+            _context.GradeLevels.Add(grade);
+            await _context.SaveChangesAsync();
+        }
+        return grade;
+    }
 
     public async Task<IEnumerable<GradeLevel>> GetAllAsync()
     {

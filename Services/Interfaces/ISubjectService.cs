@@ -7,4 +7,6 @@ public interface ISubjectService
     Task<Subject> CreateAsync(Subject subject);
     Task<Subject> UpdateAsync(Subject subject); // <-- Modificado para devolver Subject
     Task DeleteAsync(Guid id);
+    Task<Subject> GetOrCreateAsync(string name);
+
 }

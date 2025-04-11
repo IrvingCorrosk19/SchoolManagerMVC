@@ -2,6 +2,8 @@
 
 public interface IUserService
 {
+    Task<User?> GetByEmailAsync(string email);
+
     Task<List<User>> GetAllAsync();
     Task<User?> GetByIdAsync(Guid id);
     Task<User?> GetByIdWithRelationsAsync(Guid id);
@@ -10,6 +12,7 @@ public interface IUserService
     Task CreateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds);
     Task UpdateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds, List<Guid> gradeLevelIds);
     Task UpdateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds);
+    Task<List<User>> GetAllStudentsAsync();
 
     Task UpdateAsync(User user);
     Task DeleteAsync(Guid id);

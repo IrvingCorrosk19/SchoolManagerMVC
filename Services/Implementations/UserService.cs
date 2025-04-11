@@ -9,6 +9,15 @@ public class UserService : IUserService
     {
         _context = context;
     }
+
+    public async Task<List<User>> GetAllStudentsAsync()
+    {
+        return await _context.Users
+            .Where(u => u.Role.ToLower() == "student" || u.Role.ToLower() == "estudiante")
+            .OrderBy(u => u.Name)
+            .ToListAsync();
+    }
+
     public async Task UpdateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds)
     {
         // Actualizar Subjects
@@ -171,4 +180,13 @@ public class UserService : IUserService
         return await _context.Users
             .FirstOrDefaultAsync(u => u.Email == email && u.PasswordHash == password);
     }
+    public async Task<User?> GetByEmailAsync(string email)
+    {
+        if (string.IsNullOrWhiteSpace(email))
+            return null;
+
+        return await _context.Users
+            .FirstOrDefaultAsync(u => u.Email.ToLower().Trim() == email.ToLower().Trim());
+    }
+
 }

@@ -79,6 +79,7 @@
                                         <p>Profesores</p>
                                     </a>
                                 </li>
+
                             </ul>
                         </li>
 
@@ -103,6 +104,25 @@
                                         <p>Asignar Docentes</p>
                                     </a>
                                 </li>
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Index", "StudentAssignment")" class="nav-link">
+                                        <i class="fas fa-tasks nav-icon"></i>
+                                        <p>Asignar Grupos</p>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Upload", "SubjectAssignment")" class="nav-link">
+                                        <i class="fas fa-file-upload nav-icon"></i>
+                                        <p>Carga Asignaciones</p>
+                                    </a>
+                                </li>  
+                                <li class="nav-item">
+                                    <a href="@Url.Action("Upload", "AcademicAssignment")" class="nav-link">
+                                        <i class="fas fa-file-upload nav-icon"></i>
+                                        <p>Carga Asignaciones</p>
+                                    </a>
+                                </li>
+
 
                             </ul>
                         </li>
@@ -136,6 +156,8 @@
     <!-- JS de DataTables -->
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="~/lib/sweetalert2/sweetalert2.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
 
     @RenderSection("Scripts", required: false)
 
