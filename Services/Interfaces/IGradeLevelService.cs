@@ -11,5 +11,7 @@ public interface IGradeLevelService
     Task<GradeLevel> UpdateAsync(GradeLevel gradeLevel);
     Task<bool> DeleteAsync(Guid id);
     Task<GradeLevel> GetOrCreateAsync(string name);
+    Task<GradeLevel?> GetByNameAsync(string name);
+
 
 }

@@ -9,6 +9,12 @@ public class SubjectService : ISubjectService
     {
         _context = context;
     }
+
+
+    public async Task<Subject?> GetByCodeAsync(string code)
+    {
+        return await _context.Subjects.FirstOrDefaultAsync(s => s.Code.ToLower() == code.ToLower());
+    }
     public async Task<Subject> GetOrCreateAsync(string name)
     {
         name = name.Trim().ToUpper();

@@ -1,12 +1,10 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using OfficeOpenXml;
 using SchoolManager.Models;
+using SchoolManager.Services.Interfaces;
 using SchoolManager.ViewModels;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -15,10 +13,26 @@ namespace SchoolManager.Controllers
     public class SubjectAssignmentController : Controller
     {
         private readonly SchoolDbContext _context;
+        private readonly IUserService _userService;
+        private readonly ISubjectService _subjectService;
+        private readonly IGroupService _groupService;
+        private readonly IGradeLevelService _gradeLevelService;
+        private readonly IStudentAssignmentService _studentAssignmentService;
 
-        public SubjectAssignmentController(SchoolDbContext context)
+        public SubjectAssignmentController(
+            SchoolDbContext context,
+            IUserService userService,
+            ISubjectService subjectService,
+            IGroupService groupService,
+            IGradeLevelService gradeLevelService,
+            IStudentAssignmentService studentAssignmentService)
         {
             _context = context;
+            _userService = userService;
+            _subjectService = subjectService;
+            _groupService = groupService;
+            _gradeLevelService = gradeLevelService;
+            _studentAssignmentService = studentAssignmentService;
         }
 
         [HttpGet]
@@ -26,8 +40,68 @@ namespace SchoolManager.Controllers
         {
             return View(new List<SubjectAssignmentPreview>());
         }
+
         [HttpPost]
-        public async Task<IActionResult> SaveAssignments([FromBody] List<SubjectAssignmentPreview> asignaciones)
+        public async Task<IActionResult> SaveAssignments([FromBody] List<StudentAssignmentInputModel> asignaciones)
+        {
+            if (asignaciones == null || asignaciones.Count == 0)
+                return BadRequest(new { success = false, message = "No se recibieron asignaciones." });
+
+            int insertadas = 0;
+            int duplicadas = 0;
+            var errores = new List<string>();
+
+            foreach (var item in asignaciones)
+            {
+                try
+                {
+                    var student = await _userService.GetByEmailAsync(item.Estudiante);
+                    var grade = await _gradeLevelService.GetByNameAsync(item.Grado);
+                    var group = await _groupService.GetByNameAndGradeAsync(item.Grupo);
+
+                    if (student == null || grade == null || group == null)
+                    {
+                        errores.Add($"Error de datos: {item.Estudiante} - {item.Grado} - {item.Grupo}");
+                        continue;
+                    }
+
+                    bool exists = await _studentAssignmentService.ExistsAsync(student.Id, grade.Id, group.Id);
+                    if (exists)
+                    {
+                        duplicadas++;
+                        continue;
+                    }
+
+                    var assignment = new StudentAssignment
+                    {
+                        Id = Guid.NewGuid(),
+                        StudentId = student.Id,
+                        GradeId = grade.Id,
+                        GroupId = group.Id,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    await _studentAssignmentService.InsertAsync(assignment);
+                    insertadas++;
+                }
+                catch (Exception ex)
+                {
+                    errores.Add($"Excepción en {item.Estudiante}: {ex.Message}");
+                }
+            }
+
+            return Ok(new
+            {
+                success = true,
+                insertadas,
+                duplicadas,
+                errores,
+                message = "Carga masiva completada."
+            });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SaveAssignmentsSibgle([FromBody] List<SubjectAssignmentPreview> asignaciones)
         {
             if (asignaciones == null || asignaciones.Count == 0)
                 return BadRequest(new { success = false, message = "No se recibieron asignaciones." });
@@ -36,17 +110,14 @@ namespace SchoolManager.Controllers
 
             foreach (var item in asignaciones)
             {
-                // Buscar entidades existentes
                 var materia = await _context.Subjects.FirstOrDefaultAsync(s => s.Name.ToLower() == item.Materia.ToLower());
                 var grado = await _context.GradeLevels.FirstOrDefaultAsync(g => g.Name.ToLower() == item.Grado.ToLower());
                 var grupo = await _context.Groups.FirstOrDefaultAsync(g => g.Name.ToLower() == item.Grupo.ToLower());
 
                 if (materia != null && grado != null && grupo != null)
                 {
-                    // Validar si ya existe
                     bool yaExiste = await _context.SubjectAssignments.AnyAsync(a =>
                         a.SubjectId == materia.Id &&
-                        //a.GradeId == grado.Id &&
                         a.GroupId == grupo.Id);
 
                     if (!yaExiste)
@@ -55,7 +126,6 @@ namespace SchoolManager.Controllers
                         {
                             Id = Guid.NewGuid(),
                             SubjectId = materia.Id,
-                            //GradeId = grado.Id,
                             GroupId = grupo.Id,
                             CreatedAt = DateTime.UtcNow
                         });
@@ -74,22 +144,5 @@ namespace SchoolManager.Controllers
                 detalles = asignacionesCreadas
             });
         }
-
-        //[HttpPost]
-        //public IActionResult SaveAssignments([FromBody] List<SubjectAssignmentPreview> asignaciones)
-        //{
-        //    if (asignaciones == null || asignaciones.Count == 0)
-        //        return BadRequest(new { success = false, message = "No se recibieron asignaciones." });
-
-        //    // Solo mostrar los datos recibidos
-        //    return Ok(new
-        //    {
-        //        success = true,
-        //        count = asignaciones.Count,
-        //        message = "Datos recibidos correctamente.",
-        //        data = asignaciones
-        //    });
-        //}
-
     }
 }

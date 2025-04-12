@@ -7,5 +7,6 @@ public interface IGroupService
     Task UpdateAsync(Group group);
     Task DeleteAsync(Guid id);
     Task<Group> GetOrCreateAsync(string name);
+    Task<Group?> GetByNameAndGradeAsync(string groupName);
 
 }

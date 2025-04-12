@@ -8,7 +8,12 @@ public class GroupService : IGroupService
     {
         _context = context;
     }
-
+    public async Task<Group?> GetByNameAndGradeAsync(string groupName)
+    {
+        return await _context.Groups
+            .FirstOrDefaultAsync(g =>
+                g.Name.ToLower() == groupName.ToLower());
+    }
     public async Task<Group> GetOrCreateAsync(string name)
     {
         name = name.Trim().ToUpper();

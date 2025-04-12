@@ -9,6 +9,11 @@ public class GradeLevelService : IGradeLevelService
     {
         _context = context;
     }
+    public async Task<GradeLevel?> GetByNameAsync(string name)
+    {
+        return await _context.GradeLevels
+            .FirstOrDefaultAsync(g => g.Name.ToLower() == name.ToLower());
+    }
     public async Task<GradeLevel> GetOrCreateAsync(string name)
     {
         name = name.Trim().ToUpper();

@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SchoolManager.Application.Interfaces;
+using SchoolManager.Models;
 using SchoolManager.Services.Interfaces;
 using SchoolManager.ViewModels;
 using System;
@@ -31,6 +32,10 @@ namespace SchoolManager.Controllers
             _studentAssignmentService = studentAssignmentService;
         }
 
+        public IActionResult Upload()
+        {
+            return View();
+        }
         // Mostrar listado de estudiantes
         public async Task<IActionResult> Index()
         {
@@ -72,7 +77,7 @@ namespace SchoolManager.Controllers
             {
                 return BadRequest(new { success = false, message = "Debe seleccionar al menos un grupo." });
             }
-
+              
             var insertedGroupIds = new List<Guid>();
 
             foreach (var groupId in request.GroupIds)
@@ -132,5 +137,66 @@ namespace SchoolManager.Controllers
 
             return Json(new { success = true, message = "Asignaciones actualizadas correctamente." });
         }
+        [HttpPost]
+        public async Task<IActionResult> SaveAssignments([FromBody] List<StudentAssignmentInputModel> asignaciones)
+        {
+            if (asignaciones == null || asignaciones.Count == 0)
+                return BadRequest(new { success = false, message = "No se recibieron asignaciones." });
+
+ 
+
+            int insertadas = 0;
+            int duplicadas = 0;
+            var errores = new List<string>();
+
+            foreach (var item in asignaciones)
+            {
+                try
+                {
+                    var student = await _userService.GetByEmailAsync(item.Estudiante);
+                    var grade = await _gradeLevelService.GetByNameAsync(item.Grado);
+                    var group = await _groupService.GetByNameAndGradeAsync(item.Grupo);
+
+                    if (student == null || grade == null || group == null)
+                    {
+                        errores.Add($"Error de datos: {item.Estudiante} - {item.Grado} - {item.Grupo}");
+                        continue;
+                    }
+
+                    bool exists = await _studentAssignmentService.ExistsAsync(student.Id, grade.Id, group.Id);
+                    if (exists)
+                    {
+                        duplicadas++;
+                        continue;
+                    }
+
+                    var assignment = new StudentAssignment
+                    {
+                        Id = Guid.NewGuid(),
+                        StudentId = student.Id,
+                        GradeId = grade.Id,
+                        GroupId = group.Id,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    await _studentAssignmentService.InsertAsync(assignment);
+                    insertadas++;
+                }
+                catch (Exception ex)
+                {
+                    errores.Add($"Excepción en {item.Estudiante}: {ex.Message}");
+                }
+            }
+
+            return Ok(new
+            {
+                success = true,
+                insertadas,
+                duplicadas,
+                errores,
+                message = "Carga masiva completada."
+            });
+        }
+
     }
 }
