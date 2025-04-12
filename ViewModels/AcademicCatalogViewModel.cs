@@ -8,7 +8,7 @@ namespace SchoolManager.ViewModels
         public IEnumerable<GradeLevel> GradesLevel { get; set; }
         public IEnumerable<Group> Groups { get; set; }
         public IEnumerable<Subject> Subjects { get; set; }
-        public IEnumerable<Specialty> Specialty { get; set; }
-        public IEnumerable<Area> Area { get; set; }
+        public IEnumerable<Specialty> Specialties { get; set; }
+        public IEnumerable<Area> Areas { get; set; }
     }
 }

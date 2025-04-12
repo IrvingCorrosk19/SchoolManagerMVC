@@ -3,6 +3,7 @@ using SchoolManager.Application.Interfaces;
 using SchoolManager.Models;
 using SchoolManager.Services.Interfaces;
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace SchoolManager.Infrastructure.Services
@@ -43,16 +44,60 @@ namespace SchoolManager.Infrastructure.Services
             }
             catch (DbUpdateException ex)
             {
-                // Manejo específico para errores de base de datos
-                // Por ejemplo, podría ocurrir si hay un problema de concurrencia o de restricciones
-                //_logger.LogError(ex, $"Error al guardar la especialidad '{name}' en la base de datos");
                 throw new Exception($"No se pudo guardar la especialidad: {ex.Message}", ex);
             }
             catch (Exception ex)
             {
-                // Manejo para otras excepciones no previstas
-                //_logger.LogError(ex, $"Error inesperado al obtener o crear la especialidad '{name}'");
                 throw new Exception($"Error al procesar la especialidad: {ex.Message}", ex);
+            }
+        }
+
+        public async Task<List<Specialty>> GetAllAsync()
+        {
+            return await _context.Specialties.ToListAsync();
+        }
+
+        public async Task<Specialty?> GetByIdAsync(Guid id)
+        {
+            return await _context.Specialties.FindAsync(id);
+        }
+
+        public async Task<Specialty> CreateAsync(Specialty specialty)
+        {
+            if (specialty == null || string.IsNullOrWhiteSpace(specialty.Name))
+                throw new ArgumentException("La especialidad no es válida.");
+
+            specialty.Id = Guid.NewGuid();
+            specialty.CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified);
+
+            _context.Specialties.Add(specialty);
+            await _context.SaveChangesAsync();
+
+            return specialty;
+        }
+
+        public async Task<Specialty> UpdateAsync(Specialty specialty)
+        {
+            var existing = await _context.Specialties.FindAsync(specialty.Id);
+            if (existing == null)
+                throw new InvalidOperationException("Especialidad no encontrada.");
+
+            existing.Name = specialty.Name.Trim();
+            // Agrega aquí más propiedades si tu modelo lo requiere
+
+            _context.Specialties.Update(existing);
+            await _context.SaveChangesAsync();
+
+            return existing;
+        }
+
+        public async Task DeleteAsync(Guid id)
+        {
+            var specialty = await _context.Specialties.FindAsync(id);
+            if (specialty != null)
+            {
+                _context.Specialties.Remove(specialty);
+                await _context.SaveChangesAsync();
             }
         }
     }

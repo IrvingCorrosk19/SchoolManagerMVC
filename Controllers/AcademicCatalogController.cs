@@ -7,15 +7,21 @@ public class AcademicCatalogController : Controller
     private readonly IGradeLevelService _gradeLevelService;
     private readonly IGroupService _groupService;
     private readonly ISubjectService _subjectService;
+    private readonly IAreaService _areaService;
+    private readonly ISpecialtyService _specialtyService;
 
     public AcademicCatalogController(
         IGradeLevelService gradeLevelService,
         IGroupService groupService,
-        ISubjectService subjectService)
+        ISubjectService subjectService,
+        IAreaService areaService,
+        ISpecialtyService specialtyService)
     {
         _gradeLevelService = gradeLevelService;
         _groupService = groupService;
         _subjectService = subjectService;
+        _areaService = areaService;
+        _specialtyService = specialtyService;
     }
 
     public async Task<IActionResult> Index()
@@ -25,7 +31,11 @@ public class AcademicCatalogController : Controller
         {
             GradesLevel = await _gradeLevelService.GetAllAsync(), // Esto debe devolver IEnumerable<GradeLevel>
             Groups = await _groupService.GetAllAsync(),
-            Subjects = await _subjectService.GetAllAsync()
+            Subjects = await _subjectService.GetAllAsync(),
+            Areas = await _areaService.GetAllAsync(),
+            Specialties = await _specialtyService.GetAllAsync()
+
+
         };
 
         return View(model);

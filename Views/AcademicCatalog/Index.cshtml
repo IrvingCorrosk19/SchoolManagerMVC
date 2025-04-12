@@ -18,6 +18,12 @@
         <li class="nav-item">
             <a class="nav-link" data-bs-toggle="tab" href="#subjects">Materias</a>
         </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#areas">Áreas</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#specialties">Especialidades</a>
+        </li>
     </ul>
 
     <div class="tab-content mt-3">
@@ -29,6 +35,12 @@
         </div>
         <div class="tab-pane fade" id="subjects">
             @await Html.PartialAsync("~/Views/Shared/Partials/_SubjectsPartial.cshtml", Model.Subjects)
+        </div>
+        <div class="tab-pane fade" id="areas">
+            @await Html.PartialAsync("~/Views/Shared/Partials/_AreasPartial.cshtml", Model.Areas)
+        </div>
+        <div class="tab-pane fade" id="specialties">
+            @await Html.PartialAsync("~/Views/Shared/Partials/_SpecialtiesPartial.cshtml", Model.Specialties)
         </div>
     </div>
 </div>
@@ -46,5 +58,6 @@
     @await Html.PartialAsync("~/Views/Shared/Partials/_GradesScripts.cshtml")
     @await Html.PartialAsync("~/Views/Shared/Partials/_GroupsScripts.cshtml")
     @await Html.PartialAsync("~/Views/Shared/Partials/_SubjectsScripts.cshtml")
+    @await Html.PartialAsync("~/Views/Shared/Partials/_AreasScripts.cshtml")
+    @await Html.PartialAsync("~/Views/Shared/Partials/_SpecialtiesScripts.cshtml")
 }
-
