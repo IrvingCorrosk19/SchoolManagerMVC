@@ -26,6 +26,7 @@ public partial class User
     public DateTime? CreatedAt { get; set; }
 
     public string? LastName { get; set; }
+    public string DocumentId { get; set; }
 
     public virtual ICollection<Activity> Activities { get; set; } = new List<Activity>();
 

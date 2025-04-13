@@ -6,13 +6,20 @@ namespace SchoolManager.ViewModels
 {
     public class CreateUserViewModel
     {
-        public Guid Id { get; set; } // ← AÑADIR ESTA LÍNEA
+        public Guid Id { get; set; }
+
         [Required(ErrorMessage = "El nombre es obligatorio.")]
         public string Name { get; set; } = null!;
+
+        public string? LastName { get; set; }
 
         [Required(ErrorMessage = "El correo es obligatorio.")]
         [EmailAddress(ErrorMessage = "Debe ser un correo válido.")]
         public string Email { get; set; } = null!;
+
+        public string? DocumentId { get; set; }
+
+        public string? PasswordHash { get; set; }
 
         [Required(ErrorMessage = "El rol es obligatorio.")]
         public string Role { get; set; } = null!;

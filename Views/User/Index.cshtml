@@ -18,9 +18,15 @@
                 <div class="row">
                     <div class="col-md-6">
                         <div class="form-group">
-                            <label>Nombre Completo</label>
-                            <input type="text" class="form-control" name="Name" placeholder="Nombre y apellidos" required>
+                            <label>Nombre</label>
+                            <input type="text" class="form-control" name="Name" placeholder="Nombre" required>
                             <div class="invalid-feedback">Nombre obligatorio.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Apellidos</label>
+                            <input type="text" class="form-control" name="LastName" placeholder="Apellidos">
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -28,6 +34,18 @@
                             <label>Correo Electrónico</label>
                             <input type="email" class="form-control" name="Email" placeholder="correo@ejemplo.com" required>
                             <div class="invalid-feedback">Correo obligatorio.</div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Documento de Identidad</label>
+                            <input type="text" class="form-control" name="DocumentId" placeholder="Ej. 8-123-4567">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Contraseña</label>
+                            <input type="password" class="form-control" name="PasswordHash" placeholder="********">
                         </div>
                     </div>
                     <div class="col-md-3">
@@ -78,7 +96,9 @@
                 <thead>
                     <tr>
                         <th>Nombre</th>
+                        <th>Apellidos</th>
                         <th>Correo</th>
+                        <th>Documento</th>
                         <th>Rol</th>
                         <th>Estado</th>
                         <th>Acciones</th>
@@ -89,7 +109,9 @@
                     {
                         <tr>
                             <td>@user.Name</td>
+                            <td>@user.LastName</td>
                             <td>@user.Email</td>
+                            <td>@user.DocumentId</td>
                             <td>@user.Role</td>
                             <td>
                                 @if (user.Status?.ToLowerInvariant() == "active")
@@ -141,7 +163,10 @@
                 const form = $('#userForm');
                 const user = {
                     Name: form.find('[name="Name"]').val().trim(),
+                    LastName: form.find('[name="LastName"]').val().trim(),
                     Email: form.find('[name="Email"]').val().trim(),
+                    DocumentId: form.find('[name="DocumentId"]').val().trim(),
+                    PasswordHash: form.find('[name="PasswordHash"]').val(),
                     Role: form.find('[name="Role"]').val(),
                     Status: form.find('[name="Status"]').val()
                 };
@@ -180,7 +205,10 @@
                 const user = {
                     Id: $('#UserId').val(),
                     Name: form.find('[name="Name"]').val().trim(),
+                    LastName: form.find('[name="LastName"]').val().trim(),
                     Email: form.find('[name="Email"]').val().trim(),
+                    DocumentId: form.find('[name="DocumentId"]').val().trim(),
+                    PasswordHash: form.find('[name="PasswordHash"]').val(),
                     Role: form.find('[name="Role"]').val(),
                     Status: form.find('[name="Status"]').val()
                 };
@@ -220,7 +248,10 @@
                 $.get(`/User/GetUserJson?id=${userId}`, function (user) {
                     $('#UserId').val(user.id);
                     $('[name="Name"]').val(user.name);
+                    $('[name="LastName"]').val(user.lastName);
                     $('[name="Email"]').val(user.email);
+                    $('[name="DocumentId"]').val(user.documentId);
+                    $('[name="PasswordHash"]').val(user.passwordHash);
                     $('[name="Role"]').val(user.role);
                     $('[name="Status"]').val(user.status);
 

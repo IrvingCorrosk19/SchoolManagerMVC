@@ -183,6 +183,7 @@ public partial class SchoolDbContext : DbContext
                 .HasMaxLength(20)
                 .HasColumnName("user_role");
 
+
             entity.HasOne(d => d.School).WithMany(p => p.AuditLogs)
                 .HasForeignKey(d => d.SchoolId)
                 .HasConstraintName("audit_logs_school_id_fkey");
@@ -546,6 +547,14 @@ public partial class SchoolDbContext : DbContext
             entity.ToTable("users");
 
             entity.HasIndex(e => e.Email, "users_email_key").IsUnique();
+
+            entity.Property(e => e.DocumentId)
+                .HasMaxLength(50)
+                .HasColumnName("document_id");
+
+            entity.HasIndex(e => e.DocumentId)
+                .IsUnique()
+                .HasDatabaseName("users_document_id_key");
 
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("uuid_generate_v4()")

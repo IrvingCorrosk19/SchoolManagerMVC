@@ -1,5 +1,6 @@
 ﻿using SchoolManager.Models;
 using Microsoft.EntityFrameworkCore;
+using SchoolManager.Enums;
 
 public class UserService : IUserService
 {
@@ -125,6 +126,19 @@ public class UserService : IUserService
     public async Task<List<User>> GetAllAsync() =>
         await _context.Users.ToListAsync();
 
+    public async Task<List<User>> GetAllWithAssignmentsByRoleAsync(string role)
+    {
+        return await _context.Users
+            .Where(u => u.Role == role)
+            .Include(u => u.TeacherAssignments)
+                .ThenInclude(ta => ta.SubjectAssignment)
+                    .ThenInclude(sa => sa.Subject)
+            .Include(u => u.TeacherAssignments)
+                .ThenInclude(ta => ta.SubjectAssignment.Group)
+            .Include(u => u.TeacherAssignments)
+                .ThenInclude(ta => ta.SubjectAssignment.GradeLevel)
+            .ToListAsync();
+    }
     public async Task<User?> GetByIdAsync(Guid id) =>
         await _context.Users.FindAsync(id);
 
@@ -155,7 +169,12 @@ public class UserService : IUserService
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(Guid id)
+
+public async Task DeleteAsync(Guid id)
+{
+    await using var transaction = await _context.Database.BeginTransactionAsync(); // 🔁 INICIO TRANSACCIÓN
+
+    try
     {
         var user = await _context.Users
             .Include(u => u.Subjects)
@@ -163,19 +182,107 @@ public class UserService : IUserService
             .Include(u => u.Grades)
             .FirstOrDefaultAsync(u => u.Id == id);
 
-        if (user == null) return;
+        if (user == null)
+            throw new InvalidOperationException($"No se encontró el usuario con ID: {id}");
 
-        user.Subjects.Clear();
-        user.Groups.Clear();
-        user.Grades.Clear();
+        // Validar el rol usando enum
+        if (!Enum.TryParse<UserRole>(user.Role, true, out var parsedRole))
+            throw new InvalidOperationException($"Rol no válido o no soportado: {user.Role}");
+
+        switch (parsedRole)
+        {
+            case UserRole.Estudiante:
+                var studentAssignments = await _context.StudentAssignments
+                    .Where(sa => sa.StudentId == id)
+                    .ToListAsync();
+                _context.StudentAssignments.RemoveRange(studentAssignments);
+                break;
+
+            case UserRole.Teacher:
+                var teacherAssignments = await _context.TeacherAssignments
+                    .Where(ta => ta.TeacherId == id)
+                    .ToListAsync();
+                _context.TeacherAssignments.RemoveRange(teacherAssignments);
+                break;
+
+            case UserRole.Admin:
+            case UserRole.Director:
+                // No asignaciones específicas
+                break;
+
+            default:
+                throw new InvalidOperationException($"Rol no manejado: {parsedRole}");
+        }
+
+        // Limpieza de relaciones M:M
+        //user.Subjects.Clear();
+        //user.Groups.Clear();
+        //user.Grades.Clear();
 
         await _context.SaveChangesAsync();
 
         _context.Users.Remove(user);
         await _context.SaveChangesAsync();
-    }
 
-    public async Task<User?> AuthenticateAsync(string email, string password)
+        await transaction.CommitAsync();
+    }
+    catch (DbUpdateException dbEx)
+    {
+        await transaction.RollbackAsync(); 
+        throw new Exception("No se puede eliminar el usuario porque tiene dependencias en otras entidades.", dbEx);
+    }
+    catch (Exception ex)
+    {
+        await transaction.RollbackAsync();
+        throw new Exception("Error inesperado al eliminar el usuario.", ex);
+    }
+}
+//public async Task DeleteAsync(Guid id)
+//{
+//    try
+//    {
+//        var user = await _context.Users
+//            .Include(u => u.Subjects)
+//            .Include(u => u.Groups)
+//            .Include(u => u.Grades)
+//            .FirstOrDefaultAsync(u => u.Id == id);
+
+//        if (user == null)
+//            throw new InvalidOperationException($"No se encontró el usuario con ID: {id}");
+
+//        // Eliminar relaciones explícitas
+//        //user.Subjects.Clear();
+//        //user.Groups.Clear();
+//        //user.Grades.Clear();
+
+//        var role = user.Role.ToLower();
+
+
+//        // Eliminar asignaciones de profesor
+//        var assignments = await _context.TeacherAssignments
+//            .Where(ta => ta.TeacherId == id)
+//            .ToListAsync();
+
+//        _context.TeacherAssignments.RemoveRange(assignments);
+
+//        await _context.SaveChangesAsync();
+
+//        // Eliminar el usuario
+//        _context.Users.Remove(user);
+//        await _context.SaveChangesAsync();
+//    }
+//    catch (DbUpdateException dbEx)
+//    {
+//        throw new Exception("No se puede eliminar el usuario porque tiene dependencias en otras entidades (como asignaciones de docentes).", dbEx);
+//    }
+//    catch (Exception ex)
+//    {
+//        throw new Exception("Error inesperado al eliminar el usuario.", ex);
+//    }
+//}
+
+
+public async Task<User?> AuthenticateAsync(string email, string password)
     {
         return await _context.Users
             .FirstOrDefaultAsync(u => u.Email == email && u.PasswordHash == password);

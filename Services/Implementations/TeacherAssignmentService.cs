@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using SchoolManager.ViewModels;
 
+
 public class TeacherAssignmentService : ITeacherAssignmentService
 {
     private readonly SchoolDbContext _context;
@@ -11,73 +12,82 @@ public class TeacherAssignmentService : ITeacherAssignmentService
         _context = context;
     }
 
-    public async Task<List<TeacherAssignment>> GetAllAsync()
+    public async Task<List<TeacherAssignment>> GetAllWithIncludesAsync()
+{
+    return await _context.TeacherAssignments
+        .Include(ta => ta.Teacher)
+        .Include(ta => ta.SubjectAssignment)
+            .ThenInclude(sa => sa.Subject)
+        .Include(ta => ta.SubjectAssignment.Group)
+        .Include(ta => ta.SubjectAssignment.GradeLevel)
+        .Include(ta => ta.SubjectAssignment.Area)
+        .Include(ta => ta.SubjectAssignment.Specialty)
+        .ToListAsync();
+}
+    public async Task<List<TeacherAssignment>> GetAssignmentsForModalByTeacherIdAsync(Guid teacherId)
     {
         return await _context.TeacherAssignments
-            .Include(t => t.Teacher)
             .Include(t => t.SubjectAssignment)
                 .ThenInclude(sa => sa.Subject)
-            .Include(t => t.SubjectAssignment.GradeLevel)
-            .Include(t => t.SubjectAssignment.Group)
             .Include(t => t.SubjectAssignment.Area)
             .Include(t => t.SubjectAssignment.Specialty)
-            .OrderByDescending(t => t.CreatedAt)
+            .Include(t => t.SubjectAssignment.GradeLevel)
+            .Include(t => t.SubjectAssignment.Group)
+            .Where(t => t.TeacherId == teacherId)
             .ToListAsync();
     }
 
-    public async Task<List<TeacherAssignment>> FilterAsync(Guid? subjectId, Guid? groupId)
-    {
-        var query = _context.TeacherAssignments
-            .Include(t => t.Teacher)
-            .Include(t => t.SubjectAssignment)
-                .ThenInclude(sa => sa.Subject)
-            .Include(t => t.SubjectAssignment.Group)
-            .AsQueryable();
-
-        if (subjectId.HasValue)
-            query = query.Where(a => a.SubjectAssignment.SubjectId == subjectId);
-
-        if (groupId.HasValue)
-            query = query.Where(a => a.SubjectAssignment.GroupId == groupId);
-
-        return await query.OrderByDescending(a => a.CreatedAt).ToListAsync();
-    }
-
-    public async Task<TeacherAssignment?> GetByIdAsync(Guid id)
+    public async Task<List<TeacherAssignment>> GetByTeacherIdAsync(Guid teacherId)
     {
         return await _context.TeacherAssignments
-            .Include(t => t.Teacher)
-            .Include(t => t.SubjectAssignment)
+            .Include(ta => ta.SubjectAssignment)
                 .ThenInclude(sa => sa.Subject)
-            .Include(t => t.SubjectAssignment.GradeLevel)
-            .Include(t => t.SubjectAssignment.Group)
-            .Include(t => t.SubjectAssignment.Area)
-            .Include(t => t.SubjectAssignment.Specialty)
-            .FirstOrDefaultAsync(t => t.Id == id);
+            .Include(ta => ta.SubjectAssignment.Group)
+            .Include(ta => ta.SubjectAssignment.Area)
+            .Include(ta => ta.SubjectAssignment.Specialty)
+            .Include(ta => ta.SubjectAssignment.GradeLevel)
+            .Where(ta => ta.TeacherId == teacherId)
+            .ToListAsync();
     }
 
-    public async Task CreateAsync(TeacherAssignment assignment)
+    public async Task CreateAsync(Guid teacherId, Guid subjectId, Guid groupId, Guid gradeLevelId, Guid areaId, Guid specialtyId)
     {
-        var exists = await _context.TeacherAssignments.AnyAsync(a =>
-            a.TeacherId == assignment.TeacherId &&
-            a.SubjectAssignmentId == assignment.SubjectAssignmentId);
+        var subjectAssignment = await GetOrCreateSubjectAssignment(subjectId, groupId, gradeLevelId, areaId, specialtyId);
 
-        if (exists)
-            throw new Exception("Esta asignación ya existe.");
+        var exists = await _context.TeacherAssignments.AnyAsync(ta =>
+            ta.TeacherId == teacherId &&
+            ta.SubjectAssignmentId == subjectAssignment.Id);
 
-        _context.TeacherAssignments.Add(assignment);
+        if (!exists)
+        {
+            var newAssignment = new TeacherAssignment
+            {
+                Id = Guid.NewGuid(),
+                TeacherId = teacherId,
+                SubjectAssignmentId = subjectAssignment.Id,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.TeacherAssignments.Add(newAssignment);
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task UpdateAsync(Guid assignmentId, Guid subjectId, Guid groupId, Guid gradeLevelId, Guid areaId, Guid specialtyId)
+    {
+        var assignment = await _context.TeacherAssignments.FindAsync(assignmentId);
+        if (assignment == null)
+            throw new InvalidOperationException("Asignación no encontrada.");
+
+        var subjectAssignment = await GetOrCreateSubjectAssignment(subjectId, groupId, gradeLevelId, areaId, specialtyId);
+
+        assignment.SubjectAssignmentId = subjectAssignment.Id;
         await _context.SaveChangesAsync();
     }
 
-    public async Task UpdateAsync(TeacherAssignment assignment)
+    public async Task DeleteAsync(Guid assignmentId)
     {
-        _context.TeacherAssignments.Update(assignment);
-        await _context.SaveChangesAsync();
-    }
-
-    public async Task DeleteAsync(Guid id)
-    {
-        var assignment = await _context.TeacherAssignments.FindAsync(id);
+        var assignment = await _context.TeacherAssignments.FindAsync(assignmentId);
         if (assignment != null)
         {
             _context.TeacherAssignments.Remove(assignment);
@@ -85,45 +95,40 @@ public class TeacherAssignmentService : ITeacherAssignmentService
         }
     }
 
-
-    public async Task<bool> AssignTeacherAsync(TeacherAssignmentRequest request)
+    public async Task<TeacherAssignment?> GetByIdAsync(Guid id)
     {
-        foreach (var groupId in request.GroupIds)
-        {
-            // Buscar la asignación en subject_assignments
-            var subjectAssignment = await _context.SubjectAssignments.FirstOrDefaultAsync(sa =>
-                sa.SubjectId == request.SubjectId &&
-                sa.GradeLevelId == request.GradeId &&
-                sa.GroupId == groupId &&
-                sa.AreaId == request.AreaId &&
-                sa.SpecialtyId == request.SpecialtyId
-            );
-
-            if (subjectAssignment == null)
-                continue; // Se puede loguear si lo deseas
-
-            // Verificar si ya está asignado
-            bool yaExiste = await _context.TeacherAssignments.AnyAsync(ta =>
-                ta.TeacherId == request.UserId &&
-                ta.SubjectAssignmentId == subjectAssignment.Id
-            );
-
-            if (!yaExiste)
-            {
-                var nueva = new TeacherAssignment
-                {
-                    Id = Guid.NewGuid(),
-                    TeacherId = request.UserId,
-                    SubjectAssignmentId = subjectAssignment.Id,
-                    CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
-                };
-
-                _context.TeacherAssignments.Add(nueva);
-            }
-        }
-
-        await _context.SaveChangesAsync();
-        return true;
+        return await _context.TeacherAssignments
+            .Include(ta => ta.SubjectAssignment)
+            .FirstOrDefaultAsync(ta => ta.Id == id);
     }
 
+    private async Task<SubjectAssignment> GetOrCreateSubjectAssignment(Guid subjectId, Guid groupId, Guid gradeLevelId, Guid areaId, Guid specialtyId)
+    {
+        var existing = await _context.SubjectAssignments.FirstOrDefaultAsync(sa =>
+            sa.SubjectId == subjectId &&
+            sa.GroupId == groupId &&
+            sa.GradeLevelId == gradeLevelId &&
+            sa.AreaId == areaId &&
+            sa.SpecialtyId == specialtyId
+        );
+
+        if (existing != null)
+            return existing;
+
+        var newAssignment = new SubjectAssignment
+        {
+            Id = Guid.NewGuid(),
+            SubjectId = subjectId,
+            GroupId = groupId,
+            GradeLevelId = gradeLevelId,
+            AreaId = areaId,
+            SpecialtyId = specialtyId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.SubjectAssignments.Add(newAssignment);
+        await _context.SaveChangesAsync();
+
+        return newAssignment;
+    }
 }

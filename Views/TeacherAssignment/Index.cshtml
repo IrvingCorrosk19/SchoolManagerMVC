@@ -1,221 +1,288 @@
-﻿@model SchoolManager.ViewModels.TeacherActivityViewModel
+﻿@model SchoolManager.ViewModels.TeacherAssignmentViewModel
+
 @{
-    ViewData["Title"] = "Agregar Actividad";
     Layout = "_AdminLayout";
+    ViewData["Title"] = "Asignación de Docentes";
 }
 
 <div class="container-fluid">
-    <h3 class="mb-4">Registro de Actividades del Docente</h3>
+    <h2 class="my-4">📘 Asignación de Docentes</h2>
 
-    <!-- Filtros -->
-    <div class="card card-primary card-outline mb-4">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-filter"></i> Filtros</h3>
-        </div>
-        <div class="card-body row">
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label>Grupo</label>
-                    <select class="form-control" id="SelectedGroup">
-                        @foreach (var group in Model.Groups)
-                        {
-                            <option value="@group.Id">@group.Name</option>
-                        }
-                    </select>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label>Materia</label>
-                    <select class="form-control" id="SelectedSubject">
-                        @foreach (var subject in Model.Subjects)
-                        {
-                            <option value="@subject.Id">@subject.Name</option>
-                        }
-                    </select>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Formulario -->
-    <div class="card card-primary card-outline">
-        <div class="card-header">
-            <h3 class="card-title"><i class="fas fa-plus-circle"></i> Agregar / Editar Actividad</h3>
-        </div>
+    <!-- Formulario de asignación -->
+    <div class="card border-primary mb-4 w-100">
+        <div class="card-header bg-primary text-white">Crear Nueva Asignación</div>
         <div class="card-body">
-            <form enctype="multipart/form-data" method="post" asp-action="Create" id="activityForm">
-                <input type="hidden" name="UserId" value="@Model.UserId" />
-
-                <div class="row">
-                    <div class="col-md-5">
-                        <div class="form-group">
-                            <label>Nombre de la Actividad</label>
-                            <input type="text" name="ActivityName" id="ActivityName" class="form-control" placeholder="Ej. Tarea 2, Examen Final" required />
-                        </div>
+            <form asp-action="Create" method="post">
+                <div class="row g-3">
+                    <div class="col-sm-6 col-lg-4">
+                        <label>Materia</label>
+                        <select asp-for="SelectedSubjectId" class="form-control" asp-items="@(new SelectList(Model.Subjects, "Id", "Name"))">
+                            <option value="">-- Seleccione --</option>
+                        </select>
                     </div>
-
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label>Tipo</label>
-                            <select name="ActivityType" id="ActivityType" class="form-control">
-                                <option value="Tarea">Tarea</option>
-                                <option value="Parcial">Parcial</option>
-                                <option value="Examen">Examen</option>
-                            </select>
-                        </div>
+                    <div class="col-sm-6 col-lg-4">
+                        <label>Grado</label>
+                        <select asp-for="SelectedGradeLevelId" class="form-control" asp-items="@(new SelectList(Model.GradeLevels, "Id", "Name"))">
+                            <option value="">-- Seleccione --</option>
+                        </select>
                     </div>
-
-                    <div class="col-md-4">
-                        <div class="form-group">
-                            <label>Archivo PDF (opcional)</label>
-                            <input type="file" name="PdfFile" class="form-control" />
-                        </div>
+                    <div class="col-sm-6 col-lg-4">
+                        <label>Grupo</label>
+                        <select asp-for="SelectedGroupId" class="form-control" asp-items="@(new SelectList(Model.Groups, "Id", "Name"))">
+                            <option value="">-- Seleccione --</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-6 col-lg-6">
+                        <label>Área</label>
+                        <select asp-for="SelectedAreaId" class="form-control" asp-items="@(new SelectList(Model.Areas, "Id", "Name"))">
+                            <option value="">-- Seleccione --</option>
+                        </select>
+                    </div>
+                    <div class="col-sm-6 col-lg-6">
+                        <label>Especialidad</label>
+                        <select asp-for="SelectedSpecialtyId" class="form-control" asp-items="@(new SelectList(Model.Specialties, "Id", "Name"))">
+                            <option value="">-- Seleccione --</option>
+                        </select>
                     </div>
                 </div>
 
-                <button type="button" class="btn btn-primary mt-3" id="btnAgregarActividad">
-                    <i class="fas fa-plus"></i> Agregar Actividad
-                </button>
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-circle"></i> Asignar
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 
-    <!-- Registro de Calificaciones -->
-    <div class="card card-primary card-outline mt-5">
-        <div class="card-header">
-            <h5 class="card-title"><i class="fas fa-clipboard-list"></i> Registro de Calificaciones</h5>
+    <!-- Tabla de asignaciones agrupadas por docente -->
+    <div class="card border-secondary shadow-sm">
+        <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-person-lines-fill me-2"></i>Asignaciones Actuales</span>
         </div>
-        <div class="card-body table-responsive">
-            <table class="table table-bordered text-center" id="gradesTable">
-                <thead class="table-success" id="gradesHeader">
-                    <tr>
-                        <th>Estudiante</th>
-                        <th>Grado</th>
-                        <!-- Columnas dinámicas JS -->
-                    </tr>
-                </thead>
-                <tbody id="gradesTableBody">
-                    <!-- Llenado dinámico -->
-                </tbody>
-            </table>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle text-center" id="asignacionesTable">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Nombre</th>
+                            <th>Correo</th>
+                      @*       <th>Rol</th> *@
+                            <th>Estado</th>
+                            <th>Detalles</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.TeachersWithAssignments.Count; i++)
+                        {
+                            var teacher = Model.TeachersWithAssignments[i];
+                            <tr>
+                                <td>@(i + 1)</td>
+                                <td class="text-start">@teacher.FullName</td>
+                                <td class="text-start">@teacher.Email</td>
+                                <td>
+                                    @if (teacher.IsActive)
+                                    {
+                                        <span class="badge bg-success">Activo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Inactivo</span>
+                                    }
+                                </td>
+
+                                <td class="text-start">
+                                    <div class="small">
+                                        @if (teacher.SubjectGroupDetails != null && teacher.SubjectGroupDetails.Any())
+                                        {
+                                            @foreach (var item in teacher.SubjectGroupDetails)
+                                            {
+                                                <strong>Materia:</strong> @item.SubjectName
+
+                                                <br />
+                                                <strong>Grupos:</strong> @string.Join(", ", item.GroupGradePairs)
+
+                                                <br />
+
+                                                <br />
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <em>Sin asignaciones</em>
+                                        }
+                                    </div>
+                                </td>
+
+                                <td class="text-center">
+                                    <!-- 🔹 Botón EDITAR TODAS LAS ASIGNACIONES -->
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-primary me-1"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#editModal"
+                                            data-teacher-id="@teacher.TeacherId"
+                                            data-teacher-name="@teacher.FullName">
+                                        <i class="bi bi-pencil-square"></i> Editar
+                                    </button>
+
+                                    <!-- 🔻 Botón ELIMINAR TODAS LAS ASIGNACIONES -->
+                                    <form asp-action="DeleteConfirmed" method="post" asp-route-id="@teacher.TeacherId" style="display:inline;">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar todas las asignaciones">
+                                            <i class="bi bi-trash-fill"></i> Eliminar
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+
+
+                </table>
+            </div>
+        </div>
+    </div>
+
+</div>
+<!-- Modal de Edición de Asignaciones -->
+<div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editModalLabel">
+                    <i class="bi bi-pencil-square me-2"></i>Editar Asignaciones del Docente
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped align-middle text-center">
+                        <thead class="table-warning">
+                            <tr>
+                                <th>ESPECIALIDAD</th>
+                                <th>ÁREA</th>
+                                <th>MATERIA</th>
+                                <th>GRADO</th>
+                                <th>GRUPO</th>
+                            </tr>
+                        </thead>
+                        <tbody id="editAssignmentsTableBody">
+      
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" id="btnSaveAssignments">
+                    <i class="bi bi-check-circle me-1"></i> Guardar Cambios
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
-
 @section Scripts {
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet" />
+    <!-- DataTables & Bootstrap integration -->
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
+    <link href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css" rel="stylesheet" />
+
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <!-- Botones de exportación -->
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
-        const students = [
-            { name: "Ana García", grade: "1º Primaria" },
-            { name: "Carlos Rodríguez", grade: "2º Primaria" },
-            { name: "María López", grade: "3º Primaria" },
-            { name: "Juan Martínez", grade: "4º Primaria" },
-            { name: "Sofía Hernández", grade: "5º Primaria" },
-            { name: "Pedro Gómez", grade: "1º Primaria" },
-            { name: "Laura Torres", grade: "2º Primaria" },
-            { name: "Diego Ramírez", grade: "3º Primaria" },
-            { name: "Valentina Díaz", grade: "4º Primaria" },
-            { name: "Mateo Sánchez", grade: "5º Primaria" }
-        ];
-
-        let activities = [];
-
-        function calculateAverage(values) {
-            if (values.length === 0) return 0;
-            const sum = values.reduce((a, b) => a + b, 0);
-            return (sum / values.length).toFixed(1);
-        }
-
-        function renderGradesTable() {
-            const $headerRow = $("#gradesTable thead tr");
-            const $body = $("#gradesTableBody");
-
-            // Limpiar encabezado y cuerpo
-            $headerRow.html(`
-                <th>Estudiante</th>
-                <th>Grado</th>
-            `);
-            $body.empty();
-
-            const grouped = {
-                Tarea: [],
-                Parcial: [],
-                Examen: []
-            };
-
-            // Agrupar actividades por tipo
-            activities.forEach((act) => {
-                grouped[act.tipo].push(act);
-            });
-
-            const columns = [];
-
-            Object.entries(grouped).forEach(([tipo, list]) => {
-                list.forEach((act, i) => {
-                    const colKey = `${tipo}_${i}`;
-                    $headerRow.append(`<th>${act.nombre}</th>`);
-                    columns.push({ tipo, colKey });
-                });
-
-                if (list.length > 0) {
-                    $headerRow.append(`<th>Promedio ${tipo.toLowerCase()}</th>`);
-                    columns.push({ tipo, colKey: `prom_${tipo}` });
-                }
-            });
-
-            $headerRow.append(`<th>Promedio Total</th>`);
-
-            // Render body
-            students.forEach((student) => {
-                const row = $("<tr>");
-                row.append(`<td>${student.name}</td>`);
-                row.append(`<td>${student.grade}</td>`);
-
-                const tareas = [], parciales = [], examenes = [];
-
-                Object.entries(grouped).forEach(([tipo, list]) => {
-                    list.forEach(() => {
-                        const nota = (Math.random() * 3 + 2).toFixed(1);
-                        const val = parseFloat(nota);
-
-                        if (tipo === "Tarea") tareas.push(val);
-                        if (tipo === "Parcial") parciales.push(val);
-                        if (tipo === "Examen") examenes.push(val);
-
-                        row.append(`<td><input type="number" class="form-control form-control-sm text-center" value="${val}" step="0.1" min="0" max="5"/></td>`);
-                    });
-
-                    if (list.length > 0) {
-                        const prom = tipo === "Tarea" ? tareas : tipo === "Parcial" ? parciales : examenes;
-                        const avg = calculateAverage(prom);
-                        row.append(`<td><strong>${avg}</strong></td>`);
-                    }
-                });
-
-                const total = calculateAverage([...tareas, ...parciales, ...examenes]);
-                row.append(`<td><strong>${total}</strong></td>`);
-
-                $body.append(row);
-            });
-        }
-
-        $("#btnAgregarActividad").on("click", function () {
-            const nombre = $("#ActivityName").val().trim();
-            const tipo = $("#ActivityType").val();
-
-            if (!nombre || !tipo) {
-                alert("Completa todos los campos.");
-                return;
-            }
-
-            activities.push({ nombre, tipo });
-            renderGradesTable();
-            $("#ActivityName").val("");
-        });
-
         $(document).ready(function () {
-            renderGradesTable();
+            $('#asignacionesTable').DataTable({
+                dom: 'Bfrtip',
+                buttons: [
+                    {
+                        extend: 'excelHtml5',
+                        text: '<i class="bi bi-file-earmark-excel-fill"></i> Excel',
+                        className: 'btn btn-success btn-sm'
+                    },
+                    {
+                        extend: 'pdfHtml5',
+                        text: '<i class="bi bi-file-earmark-pdf-fill"></i> PDF',
+                        className: 'btn btn-danger btn-sm'
+                    }
+                ],
+                language: {
+                    search: "Buscar:",
+                    lengthMenu: "Mostrar _MENU_ registros",
+                    info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                    paginate: {
+                        first: "Primero",
+                        last: "Último",
+                        next: "→",
+                        previous: "←"
+                    },
+                    zeroRecords: "No se encontraron coincidencias",
+                    infoEmpty: "Sin registros disponibles",
+                    infoFiltered: "(filtrado de _MAX_ registros totales)"
+                },
+                pageLength: 5,
+                lengthMenu: [5, 10, 20, 50],
+                responsive: true
+            });
         });
     </script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        let selectedTeacherId = null;
+
+        $('#editModal').on('show.bs.modal', function (event) {
+            const button = $(event.relatedTarget);
+            selectedTeacherId = button.data('teacher-id');
+            const teacherName = button.data('teacher-name');
+
+            const modal = $(this);
+            modal.find('#editModalLabel').text('Editar asignaciones de ' + teacherName);
+
+            // 🔁 Llamada al backend para obtener asignaciones completas
+            $.ajax({
+                url: `/TeacherAssignment/GetAssignmentsByTeacher/${selectedTeacherId}`,
+                method: 'GET',
+                success: function (data) {
+                    const tbody = $('#editAssignmentsTableBody');
+                    tbody.empty();
+
+                    if (data.length === 0) {
+                        tbody.append('<tr><td colspan="5"><em>No hay asignaciones registradas.</em></td></tr>');
+                        return;
+                    }
+
+                    data.forEach(item => {
+                        const row = `<tr>
+                            <td>${item.specialty}</td>
+                            <td>${item.area}</td>
+                            <td>${item.subject}</td>
+                            <td>${item.grade}</td>
+                            <td>${item.group}</td>
+                        </tr>`;
+                        tbody.append(row);
+                    });
+                },
+                error: function () {
+                    Swal.fire('Error', 'No se pudieron cargar las asignaciones del docente.', 'error');
+                }
+            });
+        });
+
+    </script>
+
+
 }

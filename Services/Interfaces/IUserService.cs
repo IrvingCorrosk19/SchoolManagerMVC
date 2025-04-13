@@ -13,6 +13,7 @@ public interface IUserService
     Task UpdateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds, List<Guid> gradeLevelIds);
     Task UpdateAsync(User user, List<Guid> subjectIds, List<Guid> groupIds);
     Task<List<User>> GetAllStudentsAsync();
+    Task<List<User>> GetAllWithAssignmentsByRoleAsync(string role);
 
     Task UpdateAsync(User user);
     Task DeleteAsync(Guid id);

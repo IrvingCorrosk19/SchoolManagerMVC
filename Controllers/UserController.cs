@@ -16,7 +16,7 @@ public class UserController : Controller
         IUserService userService,
         ISubjectService subjectService,
         IGroupService groupService,
-        IMapper mapper) // ← agregar aquí
+        IMapper mapper)
     {
         _userService = userService;
         _subjectService = subjectService;
@@ -34,19 +34,19 @@ public class UserController : Controller
         {
             Id = Guid.NewGuid(),
             Name = model.Name,
+            LastName = model.LastName,
             Email = model.Email,
+            DocumentId = model.DocumentId,
             Role = model.Role.ToLower(),
             Status = model.Status,
             CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified),
-            PasswordHash = "123456" // temporal o por defecto
+            PasswordHash = model.PasswordHash ?? "123456"
         };
 
         await _userService.CreateAsync(user, model.Subjects, model.Groups);
 
         return Ok(new { message = "Usuario creado correctamente", id = user.Id });
     }
-
-
 
     public async Task<IActionResult> Index()
     {
@@ -55,7 +55,6 @@ public class UserController : Controller
         var users = await _userService.GetAllAsync();
         return View(users);
     }
-
 
     public async Task<IActionResult> Details(Guid id)
     {
@@ -71,7 +70,6 @@ public class UserController : Controller
     {
         if (ModelState.IsValid)
         {
-            //await _userService.CreateAsync(user);
             return RedirectToAction(nameof(Index));
         }
         return View(user);
@@ -109,7 +107,6 @@ public class UserController : Controller
         return Ok();
     }
 
-
     [HttpGet]
     public async Task<IActionResult> GetUserJson(Guid id)
     {
@@ -120,7 +117,10 @@ public class UserController : Controller
         {
             user.Id,
             user.Name,
+            user.LastName,
             user.Email,
+            user.DocumentId,
+            user.PasswordHash,
             Role = char.ToUpper(user.Role[0]) + user.Role.Substring(1).ToLower(),
             user.Status,
             Subjects = user.Subjects.Select(s => s.Id),
@@ -141,14 +141,19 @@ public class UserController : Controller
             return NotFound(new { message = "Usuario no encontrado" });
 
         existingUser.Name = model.Name;
+        existingUser.LastName = model.LastName;
         existingUser.Email = model.Email;
+        existingUser.DocumentId = model.DocumentId;
         existingUser.Role = model.Role.ToLower();
         existingUser.Status = model.Status;
+
+        if (!string.IsNullOrEmpty(model.PasswordHash))
+        {
+            existingUser.PasswordHash = model.PasswordHash;
+        }
 
         await _userService.UpdateAsync(existingUser, model.Subjects, model.Groups);
 
         return Ok(new { message = "Usuario actualizado correctamente" });
     }
-
-
 }

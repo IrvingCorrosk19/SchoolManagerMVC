@@ -321,16 +321,16 @@ public class AcademicAssignmentController : Controller
 
     public IActionResult Create() => View();
 
-    [HttpPost]
-    public async Task<IActionResult> Create(TeacherAssignment assignment)
-    {
-        if (ModelState.IsValid)
-        {
-            await _teacherAssignmentService.CreateAsync(assignment);
-            return RedirectToAction(nameof(Index));
-        }
-        return View(assignment);
-    }
+    //[HttpPost]
+    //public async Task<IActionResult> Create(TeacherAssignment assignment)
+    //{
+    //    if (ModelState.IsValid)
+    //    {
+    //        await _teacherAssignmentService.CreateAsync(assignment);
+    //        return RedirectToAction(nameof(Index));
+    //    }
+    //    return View(assignment);
+    //}
 
     public async Task<IActionResult> Edit(Guid id)
     {
@@ -339,16 +339,16 @@ public class AcademicAssignmentController : Controller
         return View(assignment);
     }
 
-    [HttpPost]
-    public async Task<IActionResult> Edit(TeacherAssignment assignment)
-    {
-        if (ModelState.IsValid)
-        {
-            await _teacherAssignmentService.UpdateAsync(assignment);
-            return RedirectToAction(nameof(Index));
-        }
-        return View(assignment);
-    }
+    //[HttpPost]
+    //public async Task<IActionResult> Edit(TeacherAssignment assignment)
+    //{
+    //    if (ModelState.IsValid)
+    //    {
+    //        await _teacherAssignmentService.UpdateAsync(assignment);
+    //        return RedirectToAction(nameof(Index));
+    //    }
+    //    return View(assignment);
+    //}
 
     public async Task<IActionResult> Delete(Guid id)
     {
