@@ -9,5 +9,6 @@ public interface ISubjectService
     Task DeleteAsync(Guid id);
     Task<Subject> GetOrCreateAsync(string name);
     Task<Subject?> GetByCodeAsync(string code);
+    Task<List<SubjectAssignment>> GetSubjectAssignmentsByGradeAndGroupAsync(Guid gradeId, Guid groupId);
 
 }

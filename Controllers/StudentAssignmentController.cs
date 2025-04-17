@@ -32,6 +32,71 @@ namespace SchoolManager.Controllers
             _studentAssignmentService = studentAssignmentService;
         }
 
+
+        [HttpGet]
+        public async Task<IActionResult> GetAssignmentsByStudent(Guid id)
+        {
+            var student = await _userService.GetByIdAsync(id);
+            if (student == null)
+                return NotFound();
+
+            var studentAssignments = await _studentAssignmentService.GetAssignmentsByStudentIdAsync(id);
+
+            var subjectAssignments = new List<SubjectAssignment>();
+
+            foreach (var sa in studentAssignments)
+            {
+                var matches = await _subjectService.GetSubjectAssignmentsByGradeAndGroupAsync(sa.GradeId, sa.GroupId);
+                subjectAssignments.AddRange(matches);
+            }
+
+            var response = subjectAssignments.Select(a => new
+            {
+                materia = a.Subject?.Name ?? "(Sin materia)",
+                grado = a.GradeLevel?.Name ?? "?",
+                grupo = a.Group?.Name ?? "?",
+                area = a.Area?.Name ?? "-",
+                especialidad = a.Specialty?.Name ?? "-"
+            }).Distinct();
+
+            return Json(response);
+        }
+
+        public async Task<IActionResult> Overview()
+        {
+            var students = await _userService.GetAllStudentsAsync();
+            var allGroups = await _groupService.GetAllAsync();
+            var allGrades = await _gradeLevelService.GetAllAsync();
+
+            var viewModelList = new List<StudentAssignmentOverviewViewModel>();
+
+            foreach (var student in students)
+            {
+                var assignments = await _studentAssignmentService.GetAssignmentsByStudentIdAsync(student.Id);
+
+                var gradeGroupPairs = assignments
+                    .Select(a =>
+                    {
+                        var gradeName = allGrades.FirstOrDefault(g => g.Id == a.GradeId)?.Name ?? "?";
+                        var groupName = allGroups.FirstOrDefault(g => g.Id == a.GroupId)?.Name ?? "?";
+                        return $"{gradeName} - {groupName}";
+                    })
+                    .Distinct()
+                    .ToList();
+
+                viewModelList.Add(new StudentAssignmentOverviewViewModel
+                {
+                    StudentId = student.Id,
+                    FullName = student.Name,
+                    Email = student.Email,
+                    IsActive = string.Equals(student.Status, "active", StringComparison.OrdinalIgnoreCase),
+                    GradeGroupPairs = gradeGroupPairs
+                });
+            }
+
+            return View("Index", viewModelList); // o View("Overview") si así se llama tu vista
+        }
+
         public IActionResult Upload()
         {
             return View();

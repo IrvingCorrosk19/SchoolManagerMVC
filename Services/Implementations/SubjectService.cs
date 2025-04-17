@@ -15,6 +15,18 @@ public class SubjectService : ISubjectService
     {
         return await _context.Subjects.FirstOrDefaultAsync(s => s.Code.ToLower() == code.ToLower());
     }
+
+    public async Task<List<SubjectAssignment>> GetSubjectAssignmentsByGradeAndGroupAsync(Guid gradeId, Guid groupId)
+    {
+        return await _context.SubjectAssignments
+            .Include(sa => sa.Subject)
+            .Include(sa => sa.GradeLevel)
+            .Include(sa => sa.Group)
+            .Include(sa => sa.Area)
+            .Include(sa => sa.Specialty)
+            .Where(sa => sa.GradeLevelId == gradeId && sa.GroupId == groupId)
+            .ToListAsync();
+    }
     public async Task<Subject> GetOrCreateAsync(string name)
     {
         name = name.Trim().ToUpper();

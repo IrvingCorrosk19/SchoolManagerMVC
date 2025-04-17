@@ -79,6 +79,8 @@ public class TeacherAssignmentController : Controller
         var specialties = await _specialtyService.GetAllAsync();
         var gradeLevels = await _gradeLevelService.GetAllAsync();
 
+        ViewBag.specialties = specialties;
+
         var viewModel = new TeacherAssignmentViewModel
         {
             Subjects = subjects.OrderBy(s => s.Name).ToList(),
