@@ -27,6 +27,8 @@ public class SubjectService : ISubjectService
             .Where(sa => sa.GradeLevelId == gradeId && sa.GroupId == groupId)
             .ToListAsync();
     }
+
+
     public async Task<Subject> GetOrCreateAsync(string name)
     {
         name = name.Trim().ToUpper();

@@ -6,6 +6,7 @@ using SchoolManager.Services.Implementations;
 using SchoolManager.Services.Interfaces;
 using SchoolManager.Application.Interfaces;
 using SchoolManager.Infrastructure.Services;
+using SchoolManager.Services;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -38,6 +39,7 @@ builder.Services.AddScoped<IAcademicAssignmentService, AcademicAssignmentService
 builder.Services.AddScoped<IStudentAssignmentService, StudentAssignmentService>();
 builder.Services.AddScoped<IAreaService, AreaService>();
 builder.Services.AddScoped<ISpecialtyService, SpecialtyService>();
+builder.Services.AddScoped<ISubjectAssignmentService, SubjectAssignmentService>();
 
 
 builder.Services.AddControllers()

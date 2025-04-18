@@ -17,20 +17,93 @@ namespace SchoolManager.Controllers
         private readonly IGroupService _groupService;
         private readonly IGradeLevelService _gradeLevelService;
         private readonly IStudentAssignmentService _studentAssignmentService;
+        private readonly ISubjectAssignmentService _subjectAssignmentService;
 
         public StudentAssignmentController(
             IUserService userService,
             ISubjectService subjectService,
             IGroupService groupService,
             IGradeLevelService gradeLevelService,
-            IStudentAssignmentService studentAssignmentService)
+            IStudentAssignmentService studentAssignmentService,
+            ISubjectAssignmentService subjectAssignmentService)
         {
             _userService = userService;
             _subjectService = subjectService;
             _groupService = groupService;
             _gradeLevelService = gradeLevelService;
             _studentAssignmentService = studentAssignmentService;
+            _subjectAssignmentService = subjectAssignmentService;
         }
+
+        [HttpPost("/StudentAssignment/UpdateGroupAndGrade")]
+        public async Task<IActionResult> UpdateGroupAndGrade(Guid studentId, Guid gradeId, Guid groupId)
+        {
+            if (studentId == Guid.Empty || gradeId == Guid.Empty || groupId == Guid.Empty)
+                return Json(new { success = false, message = "Datos inválidos para la asignación." });
+
+            // 1. Eliminar todas las asignaciones existentes de este estudiante
+            await _studentAssignmentService.RemoveAssignmentsAsync(studentId);
+
+            // 2. Crear la nueva asignación
+            var newAssignment = new StudentAssignment
+            {
+                Id = Guid.NewGuid(),
+                StudentId = studentId,
+                GradeId = gradeId,
+                GroupId = groupId,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _studentAssignmentService.InsertAsync(newAssignment);
+
+            return Json(new { success = true, message = "Asignación actualizada correctamente." });
+        }
+
+        [HttpGet("/StudentAssignment/GetAvailableGradeGroups")]
+        public async Task<IActionResult> GetAvailableGradeGroups()
+        {
+            var combinations = await _subjectAssignmentService.GetDistinctGradeGroupCombinationsAsync();
+
+            var allGrades = await _gradeLevelService.GetAllAsync();
+            var allGroups = await _groupService.GetAllAsync();
+
+            var result = combinations.Select(c => new
+            {
+                GradeId = c.GradeLevelId,
+                GroupId = c.GroupId,
+                Display = $"{allGrades.FirstOrDefault(g => g.Id == c.GradeLevelId)?.Name ?? "-"} - {allGroups.FirstOrDefault(g => g.Id == c.GroupId)?.Name ?? "-"}"
+            }).OrderBy(x => x.Display).ToList();
+
+            return Json(new { success = true, data = result });
+        }
+
+        [HttpGet("/StudentAssignment/GetGradeGroupByStudent/{studentId}")]
+        public async Task<IActionResult> GetGradeGroupByStudent(Guid studentId)
+        {
+            if (studentId == Guid.Empty)
+                return Json(new { success = false, message = "ID de estudiante inválido." });
+
+            var assignments = await _studentAssignmentService.GetAssignmentsByStudentIdAsync(studentId);
+
+            if (assignments == null || !assignments.Any())
+                return Json(new { success = false, message = "El estudiante no tiene asignaciones." });
+
+            var results = new List<object>();
+
+            foreach (var a in assignments)
+            {
+                var grade = await _gradeLevelService.GetByIdAsync(a.GradeId);
+                var group = await _groupService.GetByIdAsync(a.GroupId);
+
+                results.Add(new
+                {
+                    Grado = grade?.Name ?? "(Sin grado)",
+                    Grupo = group?.Name ?? "(Sin grupo)"
+                });
+            }
+
+            return Json(new { success = true, data = results.Distinct() });
+        }
+
 
 
         [HttpGet]
