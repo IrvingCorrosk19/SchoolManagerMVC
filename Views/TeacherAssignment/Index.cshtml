@@ -8,54 +8,7 @@
 <div class="container-fluid">
     <h2 class="my-4">📘 Asignación de Docentes</h2>
 
-    <!-- Formulario de asignación -->
-    <div class="card border-primary mb-4 w-100">
-        <div class="card-header bg-primary text-white">Crear Nueva Asignación</div>
-        <div class="card-body">
-            <form asp-action="Create" method="post">
-                <div class="row g-3">
-                    <div class="col-sm-6 col-lg-4">
-                        <label>Materia</label>
-                        <select asp-for="SelectedSubjectId" class="form-control" asp-items="@(new SelectList(Model.Subjects, "Id", "Name"))">
-                            <option value="">-- Seleccione --</option>
-                        </select>
-                    </div>
-                    <div class="col-sm-6 col-lg-4">
-                        <label>Grado</label>
-                        <select asp-for="SelectedGradeLevelId" class="form-control" asp-items="@(new SelectList(Model.GradeLevels, "Id", "Name"))">
-                            <option value="">-- Seleccione --</option>
-                        </select>
-                    </div>
-                    <div class="col-sm-6 col-lg-4">
-                        <label>Grupo</label>
-                        <select asp-for="SelectedGroupId" class="form-control" asp-items="@(new SelectList(Model.Groups, "Id", "Name"))">
-                            <option value="">-- Seleccione --</option>
-                        </select>
-                    </div>
-                    <div class="col-sm-6 col-lg-6">
-                        <label>Área</label>
-                        <select asp-for="SelectedAreaId" class="form-control" asp-items="@(new SelectList(Model.Areas, "Id", "Name"))">
-                            <option value="">-- Seleccione --</option>
-                        </select>
-                    </div>
-                    <div class="col-sm-6 col-lg-6">
-                        <label>Especialidad</label>
-                        <select asp-for="SelectedSpecialtyId" class="form-control" asp-items="@(new SelectList(Model.Specialties, "Id", "Name"))">
-                            <option value="">-- Seleccione --</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="mt-4">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-plus-circle"></i> Asignar
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Tabla de asignaciones agrupadas por docente -->
+    <!-- Tabla de asignaciones -->
     <div class="card border-secondary shadow-sm">
         <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
             <span><i class="bi bi-person-lines-fill me-2"></i>Asignaciones Actuales</span>
@@ -68,7 +21,6 @@
                             <th>#</th>
                             <th>Nombre</th>
                             <th>Correo</th>
-                      @*       <th>Rol</th> *@
                             <th>Estado</th>
                             <th>Detalles</th>
                             <th>Acciones</th>
@@ -77,59 +29,46 @@
                     <tbody>
                         @for (int i = 0; i < Model.TeachersWithAssignments.Count; i++)
                         {
-                            var teacher = Model.TeachersWithAssignments[i];
+                            var t = Model.TeachersWithAssignments[i];
                             <tr>
                                 <td>@(i + 1)</td>
-                                <td class="text-start">@teacher.FullName</td>
-                                <td class="text-start">@teacher.Email</td>
+                                <td class="text-start">@t.FullName</td>
+                                <td class="text-start">@t.Email</td>
                                 <td>
-                                    @if (teacher.IsActive)
+                                    <span class="badge @(t.IsActive ? "bg-success" : "bg-danger")">
+                                        @(t.IsActive ? "Activo" : "Inactivo")
+                                    </span>
+                                </td>
+                                <td class="text-start small">
+                                    @if (t.SubjectGroupDetails?.Any() == true)
                                     {
-                                        <span class="badge bg-success">Activo</span>
+                                        foreach (var d in t.SubjectGroupDetails)
+                                        {
+                                            <strong>Materia:</strong> @d.SubjectName
+
+                                            <br />
+                                            <strong>Grupos:</strong> @string.Join(", ", d.GroupGradePairs)
+
+                                            <br />
+
+                                            <br />
+                                        }
                                     }
                                     else
                                     {
-                                        <span class="badge bg-danger">Inactivo</span>
+                                        <em>Sin asignaciones</em>
                                     }
                                 </td>
-
-                                <td class="text-start">
-                                    <div class="small">
-                                        @if (teacher.SubjectGroupDetails != null && teacher.SubjectGroupDetails.Any())
-                                        {
-                                            @foreach (var item in teacher.SubjectGroupDetails)
-                                            {
-                                                <strong>Materia:</strong> @item.SubjectName
-
-                                                <br />
-                                                <strong>Grupos:</strong> @string.Join(", ", item.GroupGradePairs)
-
-                                                <br />
-
-                                                <br />
-                                            }
-                                        }
-                                        else
-                                        {
-                                            <em>Sin asignaciones</em>
-                                        }
-                                    </div>
-                                </td>
-
                                 <td class="text-center">
-                                    <!-- 🔹 Botón EDITAR TODAS LAS ASIGNACIONES -->
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-primary me-1"
-                                            data-bs-toggle="modal"
-                                            data-bs-target="#editModal"
-                                            data-teacher-id="@teacher.TeacherId"
-                                            data-teacher-name="@teacher.FullName">
+                                    <button type="button" class="btn btn-sm btn-outline-primary me-1"
+                                            data-bs-toggle="modal" data-bs-target="#editModal"
+                                            data-teacher-id="@t.TeacherId" data-teacher-name="@t.FullName">
                                         <i class="bi bi-pencil-square"></i> Editar
                                     </button>
-
-                                    <!-- 🔻 Botón ELIMINAR TODAS LAS ASIGNACIONES -->
-                                    <form asp-action="DeleteConfirmed" method="post" asp-route-id="@teacher.TeacherId" style="display:inline;">
-                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar todas las asignaciones">
+                                    <form asp-action="DeleteConfirmed" method="post"
+                                          asp-route-id="@t.TeacherId" style="display:inline;">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                title="Eliminar asignaciones">
                                             <i class="bi bi-trash-fill"></i> Eliminar
                                         </button>
                                     </form>
@@ -137,23 +76,19 @@
                             </tr>
                         }
                     </tbody>
-
-
                 </table>
             </div>
         </div>
     </div>
-
 </div>
-<!-- Modal de Edición de Asignaciones -->
+
+<!-- Modal -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content shadow">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="editModalLabel">
-                    <i class="bi bi-pencil-square me-2"></i>Editar Asignaciones del Docente
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <h5 class="modal-title" id="editModalLabel"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <div class="table-responsive">
@@ -167,15 +102,16 @@
                                 <th>GRUPO</th>
                             </tr>
                         </thead>
-                        <tbody id="editAssignmentsTableBody">
-      
-                        </tbody>
+                        <tbody id="editAssignmentsTableBody"></tbody>
                     </table>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success" id="btnSaveAssignments">
+                <button class="btn btn-outline-primary me-auto" id="btnAddRow">
+                    <i class="bi bi-plus-circle me-1"></i> Agregar
+                </button>
+                <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button class="btn btn-success" id="btnSaveAssignments">
                     <i class="bi bi-check-circle me-1"></i> Guardar Cambios
                 </button>
             </div>
@@ -184,105 +120,148 @@
 </div>
 
 @section Scripts {
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <link href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" rel="stylesheet" />
-    <!-- DataTables & Bootstrap integration -->
-    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet" />
-    <link href="https://cdn.datatables.net/buttons/2.4.1/css/buttons.bootstrap5.min.css" rel="stylesheet" />
-
     <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-
-    <!-- Botones de exportación -->
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/dataTables.buttons.min.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.bootstrap5.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
-    <script src="https://cdn.datatables.net/buttons/2.4.1/js/buttons.html5.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        $(document).ready(function () {
-            $('#asignacionesTable').DataTable({
-                dom: 'Bfrtip',
-                buttons: [
-                    {
-                        extend: 'excelHtml5',
-                        text: '<i class="bi bi-file-earmark-excel-fill"></i> Excel',
-                        className: 'btn btn-success btn-sm'
-                    },
-                    {
-                        extend: 'pdfHtml5',
-                        text: '<i class="bi bi-file-earmark-pdf-fill"></i> PDF',
-                        className: 'btn btn-danger btn-sm'
-                    }
-                ],
-                language: {
-                    search: "Buscar:",
-                    lengthMenu: "Mostrar _MENU_ registros",
-                    info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                    paginate: {
-                        first: "Primero",
-                        last: "Último",
-                        next: "→",
-                        previous: "←"
-                    },
-                    zeroRecords: "No se encontraron coincidencias",
-                    infoEmpty: "Sin registros disponibles",
-                    infoFiltered: "(filtrado de _MAX_ registros totales)"
-                },
-                pageLength: 5,
-                lengthMenu: [5, 10, 20, 50],
-                responsive: true
-            });
-        });
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <script>
+        /*----------------------------------
+          Variables globales
+        ----------------------------------*/
         let selectedTeacherId = null;
+        window.allAssignments = [];      // catálogo completo (especialidad‑área‑materia‑grado‑grupo)
+        window.specialtyOptions = "";
 
-        $('#editModal').on('show.bs.modal', function (event) {
-            const button = $(event.relatedTarget);
-            selectedTeacherId = button.data('teacher-id');
-            const teacherName = button.data('teacher-name');
+        /*----------------------------------
+          Helpers
+        ----------------------------------*/
+        const distinct = (arr, key) => [...new Map(arr.map(o => [o[key], o])).values()];
+        const opt = (val, txt, sel) => `<option value="${val}" ${sel ? "selected" : ""}>${txt}</option>`;
+        const opts = (list, idKey, nameKey, sel) =>
+            '<option value="">-- Seleccione --</option>' +
+            list.map(o => opt(o[idKey], o[nameKey], o[idKey] === sel)).join("");
 
-            const modal = $(this);
-            modal.find('#editModalLabel').text('Editar asignaciones de ' + teacherName);
+        function createRowHtml(d = null) {
+            const spList = distinct(window.allAssignments, "specialtyId");
+            const areaList    = d ? distinct(window.allAssignments.filter(a => a.specialtyId === d.specialtyId), "areaId") : [];
+            const subjectList = d ? distinct(window.allAssignments.filter(a =>
+                                 a.specialtyId === d.specialtyId && a.areaId === d.areaId), "subjectId") : [];
+            const gradeList   = d ? distinct(window.allAssignments.filter(a =>
+                                 a.specialtyId === d.specialtyId && a.areaId === d.areaId && a.subjectId === d.subjectId), "gradeLevelId") : [];
+            const groupList   = d ? distinct(window.allAssignments.filter(a =>
+                                 a.specialtyId === d.specialtyId && a.areaId === d.areaId && a.subjectId === d.subjectId && a.gradeLevelId === d.gradeLevelId), "groupId") : [];
 
-            // 🔁 Llamada al backend para obtener asignaciones completas
-            $.ajax({
-                url: `/TeacherAssignment/GetAssignmentsByTeacher/${selectedTeacherId}`,
-                method: 'GET',
-                success: function (data) {
-                    const tbody = $('#editAssignmentsTableBody');
-                    tbody.empty();
+            return `<tr>
+                <td><select class="form-select select-specialty-modal">${opts(spList,'specialtyId','specialtyName',d?.specialtyId)}</select></td>
+                <td><select class="form-select select-area-modal">${opts(areaList,'areaId','areaName',d?.areaId)}</select></td>
+                <td><select class="form-select select-subject-modal">${opts(subjectList,'subjectId','subjectName',d?.subjectId)}</select></td>
+                <td><select class="form-select select-grade-modal">${opts(gradeList,'gradeLevelId','gradeLevelName',d?.gradeLevelId)}</select></td>
+                <td><select class="form-select select-group-modal">${opts(groupList,'groupId','groupName',d?.groupId)}</select></td>
+            </tr>`;
+        }
 
-                    if (data.length === 0) {
-                        tbody.append('<tr><td colspan="5"><em>No hay asignaciones registradas.</em></td></tr>');
-                        return;
-                    }
-
-                    data.forEach(item => {
-                        const row = `<tr>
-                            <td>${item.specialty}</td>
-                            <td>${item.area}</td>
-                            <td>${item.subject}</td>
-                            <td>${item.grade}</td>
-                            <td>${item.group}</td>
-                        </tr>`;
-                        tbody.append(row);
-                    });
-                },
-                error: function () {
-                    Swal.fire('Error', 'No se pudieron cargar las asignaciones del docente.', 'error');
-                }
+        /*----------------------------------
+          DataTable
+        ----------------------------------*/
+        $(function () {
+            $('#asignacionesTable').DataTable({
+                language:{ search:"Buscar:", lengthMenu:"Mostrar _MENU_", info:"Mostrando _START_ a _END_ de _TOTAL_", zeroRecords:"Sin coincidencias",
+                           paginate:{first:"Primero", last:"Último", next:"→", previous:"←"} },
+                pageLength:5, responsive:true
             });
         });
 
+        /*----------------------------------
+          Abrir modal
+        ----------------------------------*/
+        $('#editModal').on('show.bs.modal', e => {
+            const btn = $(e.relatedTarget);
+            selectedTeacherId = btn.data('teacher-id');
+            $('#editModalLabel').text('Editar asignaciones de ' + btn.data('teacher-name'));
+            const tbody = $('#editAssignmentsTableBody').empty();
+
+            $.get(`/TeacherAssignment/GetAssignmentsByTeacher/${selectedTeacherId}`, res => {
+                window.allAssignments = res.allPossibleAssignments;   // catálogo completo
+
+                if (!res.currentAssignments.length) {
+                    Swal.fire('Aviso','Este docente no tiene asignaciones.','info');
+                    return tbody.append(createRowHtml());             // fila vacía
+                }
+                res.currentAssignments.forEach(a => tbody.append(createRowHtml(a)));
+            })
+            .fail(()=> Swal.fire('Error','No se pudieron cargar las asignaciones.','error'));
+        });
+
+        /*----------------------------------
+          Agregar fila
+        ----------------------------------*/
+        $('#btnAddRow').on('click',()=> $('#editAssignmentsTableBody').append(createRowHtml()));
+
+        /*----------------------------------
+          Cascada local (sin llamadas extra)
+        ----------------------------------*/
+        $(document).on('change','.select-specialty-modal',function(){
+            const $row=$(this).closest('tr');
+            const sp=$(this).val();
+            const areas=distinct(window.allAssignments.filter(x=>x.specialtyId===sp),'areaId');
+            $row.find('.select-area-modal').html(opts(areas,'areaId','areaName'));
+            $row.find('.select-subject-modal,.select-grade-modal,.select-group-modal').html('<option value=\"\">-- Seleccione --</option>');
+        });
+
+        $(document).on('change','.select-area-modal',function(){
+            const $row=$(this).closest('tr'), sp=$row.find('.select-specialty-modal').val(), ar=$(this).val();
+            const subjects=distinct(window.allAssignments.filter(x=>x.specialtyId===sp&&x.areaId===ar),'subjectId');
+            $row.find('.select-subject-modal').html(opts(subjects,'subjectId','subjectName'));
+            $row.find('.select-grade-modal,.select-group-modal').html('<option value=\"\">-- Seleccione --</option>');
+        });
+
+        $(document).on('change','.select-subject-modal',function(){
+            const $row=$(this).closest('tr'),
+                  sp=$row.find('.select-specialty-modal').val(),
+                  ar=$row.find('.select-area-modal').val(),
+                  sb=$(this).val();
+            const grades=distinct(window.allAssignments.filter(x=>x.specialtyId===sp&&x.areaId===ar&&x.subjectId===sb),'gradeLevelId');
+            $row.find('.select-grade-modal').html(opts(grades,'gradeLevelId','gradeLevelName'));
+            $row.find('.select-group-modal').html('<option value=\"\">-- Seleccione --</option>');
+        });
+
+        $(document).on('change','.select-grade-modal',function(){
+            const $row=$(this).closest('tr'),
+                  sp=$row.find('.select-specialty-modal').val(),
+                  ar=$row.find('.select-area-modal').val(),
+                  sb=$row.find('.select-subject-modal').val(),
+                  gr=$(this).val();
+            const groups=distinct(window.allAssignments.filter(x=>x.specialtyId===sp&&x.areaId===ar&&x.subjectId===sb&&x.gradeLevelId===gr),'groupId');
+            $row.find('.select-group-modal').html(opts(groups,'groupId','groupName'));
+        });
+
+        /*----------------------------------
+          Guardar
+        ----------------------------------*/
+        $('#btnSaveAssignments').on('click',()=>{
+            const rows=$('#editAssignmentsTableBody tr');
+            const data=[];
+            let bad=false;
+            rows.each(function(){
+                const val=cls=>$(this).find(cls).val();
+                const a={ specialtyId:val('.select-specialty-modal'), areaId:val('.select-area-modal'),
+                          subjectId:val('.select-subject-modal'), gradeLevelId:val('.select-grade-modal'),
+                          groupId:val('.select-group-modal') };
+                if(Object.values(a).some(v=>!v)) bad=true; else data.push(a);
+            });
+            if(bad||!data.length) return Swal.fire('Campos incompletos','Completa todos los campos.','warning');
+
+            $.ajax({
+                url:'@Url.Action("SaveAssignments", "TeacherAssignment")',
+                method:'POST', contentType:'application/json',
+                data: JSON.stringify({ teacherId:selectedTeacherId, assignments:data }),
+                success:r=>{
+                    if(r.success){ Swal.fire('Éxito',r.message,'success').then(()=>location.reload()); }
+                    else{ Swal.fire('Aviso',r.message,'info'); }
+                },
+                error:()=>Swal.fire('Error','No se pudo guardar.','error')
+            });
+        });
     </script>
-
-
 }

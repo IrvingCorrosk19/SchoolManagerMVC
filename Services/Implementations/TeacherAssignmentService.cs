@@ -11,6 +11,60 @@ public class TeacherAssignmentService : ITeacherAssignmentService
     {
         _context = context;
     }
+    // Elimina todas las asignaciones existentes de un profesor
+    public async Task DeleteAllAssignmentsByTeacherIdAsync(Guid teacherId)
+    {
+        var assignments = _context.TeacherAssignments
+            .Where(ta => ta.TeacherId == teacherId);
+
+        _context.TeacherAssignments.RemoveRange(assignments);
+        await _context.SaveChangesAsync();
+    }
+
+    // Agrega una nueva asignación al profesor dado el SubjectAssignmentId
+    public async Task AddAssignmentAsync(Guid teacherId, Guid subjectAssignmentId)
+    {
+        var newAssignment = new TeacherAssignment
+        {
+            Id = Guid.NewGuid(),
+            TeacherId = teacherId,
+            SubjectAssignmentId = subjectAssignmentId,
+            // Convertir el DateTime en 'Unspecified' para que encaje con 'timestamp without time zone'
+            CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
+        };
+
+        _context.TeacherAssignments.Add(newAssignment);
+        await _context.SaveChangesAsync();
+    }
+
+
+    public async Task<(bool Success, List<Guid>? SubjectAssignmentIds, AssignmentDto? FailedAssignment)> GetSubjectAssignmentIdsAsync(SaveTeacherAssignmentsRequest request)
+    {
+        var subjectAssignmentIds = new List<Guid>();
+
+        foreach (var assignment in request.Assignments)
+        {
+            var subjectAssignment = await _context.SubjectAssignments.FirstOrDefaultAsync(sa =>
+                sa.SpecialtyId == assignment.SpecialtyId &&
+                sa.AreaId == assignment.AreaId &&
+                sa.SubjectId == assignment.SubjectId &&
+                sa.GradeLevelId == assignment.GradeLevelId &&
+                sa.GroupId == assignment.GroupId
+            );
+
+            if (subjectAssignment != null)
+            {
+                subjectAssignmentIds.Add(subjectAssignment.Id);
+            }
+            else
+            {
+                // Retorna el assignment que falló si no existe
+                return (false, null, assignment);
+            }
+        }
+
+        return (true, subjectAssignmentIds, null);
+    }
 
     public async Task<List<TeacherAssignment>> GetAllWithIncludesAsync()
 {

@@ -1,4 +1,5 @@
 ﻿using SchoolManager.Models;
+using SchoolManager.ViewModels;
 
 public interface ITeacherAssignmentService
 {
@@ -14,4 +15,9 @@ public interface ITeacherAssignmentService
     Task<List<TeacherAssignment>> GetAllWithIncludesAsync();
 
     Task<List<TeacherAssignment>> GetAssignmentsForModalByTeacherIdAsync(Guid teacherId);
+    Task<(bool Success, List<Guid>? SubjectAssignmentIds, AssignmentDto? FailedAssignment)> GetSubjectAssignmentIdsAsync(SaveTeacherAssignmentsRequest request);
+
+    Task DeleteAllAssignmentsByTeacherIdAsync(Guid teacherId);
+
+    Task AddAssignmentAsync(Guid teacherId, Guid subjectAssignmentId);
 }
