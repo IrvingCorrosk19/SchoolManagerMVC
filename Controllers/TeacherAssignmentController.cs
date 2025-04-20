@@ -17,6 +17,7 @@ public class TeacherAssignmentController : Controller
     private readonly ISpecialtyService _specialtyService;
     private readonly IGradeLevelService _gradeLevelService;
     private readonly ISubjectAssignmentService _subjectAssignmentService;
+    private readonly IStudentService _studentService;
     private readonly IMapper _mapper;
 
     public TeacherAssignmentController(
@@ -28,7 +29,8 @@ public class TeacherAssignmentController : Controller
         ISpecialtyService specialtyService,
         IGradeLevelService gradeLevelService,
         IMapper mapper,
-        ISubjectAssignmentService subjectAssignmentService)
+        ISubjectAssignmentService subjectAssignmentService,
+        IStudentService studentService)
     {
         _teacherAssignmentService = teacherAssignmentService;
         _userService = userService;
@@ -38,7 +40,8 @@ public class TeacherAssignmentController : Controller
         _specialtyService = specialtyService;
         _gradeLevelService = gradeLevelService;
         _mapper = mapper;
-        _subjectAssignmentService= subjectAssignmentService;
+        _subjectAssignmentService = subjectAssignmentService;
+        _studentService = studentService;
     }
 
     [HttpPost("SaveAssignments")]
@@ -75,43 +78,7 @@ public class TeacherAssignmentController : Controller
         });
     }
 
-    //[HttpGet]
-    //public async Task<IActionResult> GetGroupsByGrade(Guid subjectId, Guid specialtyId, Guid areaId, Guid gradeLevelId)
-    //{
-    //    var groups = await _subjectAssignmentService.GetGroupsByGradeLevelAsync(subjectId, specialtyId, areaId, gradeLevelId);
-    //    return Json(groups.Select(g => new { g.Id, g.Name }));
-    //}
-    //[HttpGet]
-    //public async Task<IActionResult> SaveTeacherAssignment(Guid teacherId, Guid subjectId, Guid specialtyId, Guid areaId, Guid gradeLevelId, Guid groupId)
-    //{
-    //    // Buscar el subject assignment con la combinación única
-    //    var subjectAssignment = await _subjectAssignmentService.FindByCompositeKeysAsync(subjectId, specialtyId, areaId, gradeLevelId, groupId);
 
-    //    if (subjectAssignment == null)
-    //    {
-    //        return Json(new { success = false, message = "No se encontró una asignación válida con la combinación indicada." });
-    //    }
-
-    //    // Verificar si ya existe esa asignación para el docente
-    //    var exists = await _teacherAssignmentService.ExistsAsync(teacherId, subjectAssignment.Id);
-    //    if (exists)
-    //    {
-    //        return Json(new { success = false, message = "Esta asignación ya existe para el docente." });
-    //    }
-
-    //    // Crear nueva asignación
-    //    var newAssignment = new TeacherAssignment
-    //    {
-    //        Id = Guid.NewGuid(),
-    //        TeacherId = teacherId,
-    //        SubjectAssignmentId = subjectAssignment.Id,
-    //        CreatedAt = DateTime.UtcNow
-    //    };
-
-    //    await _teacherAssignmentService.InsertAsync(newAssignment);
-
-    //    return Json(new { success = true, message = "Asignación guardada correctamente." });
-    //}
 
     [HttpGet]
     public async Task<IActionResult> GetGroupsByGrade(Guid subjectId, Guid specialtyId, Guid areaId, Guid gradeLevelId)
@@ -188,15 +155,21 @@ public class TeacherAssignmentController : Controller
 
                 SubjectGroupDetails = assignments.Any()
                     ? assignments
-                        .GroupBy(a => a.SubjectAssignment.Subject?.Name ?? "(Sin materia)")
-                        .Select(sg => new SubjectGroupSummary
+                        .GroupBy(a => new
                         {
-                            SubjectName = sg.Key,
-                            GroupGradePairs = sg
-                                .Select(x => $"{x.SubjectAssignment.Group?.Name}-{x.SubjectAssignment.GradeLevel?.Name}")
-                                .Where(x => !string.IsNullOrWhiteSpace(x))
-                                .Distinct()
-                                .ToList()
+                            SubjectId = a.SubjectAssignment.SubjectId,
+                            SubjectName = a.SubjectAssignment.Subject?.Name ?? "(Sin materia)"
+                        })
+                        .Select(g => new SubjectGroupSummary
+                        {
+                            SubjectId = g.Key.SubjectId,
+                            SubjectName = g.Key.SubjectName,
+                            GroupGradePairs = g.Select(x => new GroupGradeItem
+                            {
+                                GroupId = x.SubjectAssignment.GroupId,
+                                GroupName = x.SubjectAssignment.Group?.Name ?? "(Grupo)",
+                                GradeLevelName = x.SubjectAssignment.GradeLevel?.Name ?? "(Grado)"
+                            }).ToList()
                         }).ToList()
                     : new List<SubjectGroupSummary>()
             };
@@ -288,87 +261,11 @@ public class TeacherAssignmentController : Controller
         });
     }
 
-
-
-
-
-    //[HttpGet]
-    //public async Task<IActionResult> GetAssignmentsByTeacher(Guid id)
-    //{
-    //    var assignments = await _teacherAssignmentService.GetAssignmentsForModalByTeacherIdAsync(id);
-
-    //    var result = assignments.Select(a => new
-    //    {
-    //        specialty = a.SubjectAssignment.Specialty?.Name,
-    //        area = a.SubjectAssignment.Area?.Name,
-    //        subject = a.SubjectAssignment.Subject?.Name,
-    //        grade = a.SubjectAssignment.GradeLevel?.Name,
-    //        group = a.SubjectAssignment.Group?.Name
-    //    });
-
-    //    return Json(result);
-    //}
-
-    //public async Task<IActionResult> Index()
-    //{
-    //    var teacherId = Guid.Parse("1bbb72ba-396c-4b96-bd30-8a7a3997c2fc");
-
-    //    var teacher = await _userService.GetByIdWithRelationsAsync(teacherId);
-    //    if (teacher == null)
-    //        return NotFound("Docente no encontrado.");
-
-    //    var allAssignments = await _teacherAssignmentService.GetAllWithIncludesAsync();
-
-    //    var grouped = allAssignments
-    //        .GroupBy(a => a.Teacher)
-    //        .Select(g => new TeacherAssignmentDisplayDto
-    //        {
-    //            TeacherId = g.Key.Id,
-    //            FullName = g.Key.Name,
-    //            Email = g.Key.Email,
-    //            Role = g.Key.Role,
-    //            IsActive = string.Equals(g.Key.Status, "Activo", StringComparison.OrdinalIgnoreCase),
-
-    //            SubjectGroupDetails = g
-    //                .GroupBy(a => a.SubjectAssignment.Subject?.Name ?? "(Sin materia)")
-    //                .Select(sg => new SubjectGroupSummary
-    //                {
-    //                    SubjectName = sg.Key,
-    //                    GroupGradePairs = sg
-    //                        .Select(x => $"{x.SubjectAssignment.Group?.Name}-{x.SubjectAssignment.GradeLevel?.Name}")
-    //                        .Where(x => !string.IsNullOrWhiteSpace(x))
-    //                        .Distinct()
-    //                        .ToList()
-    //                })
-    //                .ToList()
-
-    //        }).ToList();
-
-    //    var subjects = await _subjectService.GetAllAsync();
-    //    var groups = await _groupService.GetAllAsync();
-    //    var areas = await _areaService.GetAllAsync();
-    //    var specialties = await _specialtyService.GetAllAsync();
-    //    var gradeLevels = await _gradeLevelService.GetAllAsync();
-
-    //    var viewModel = new TeacherAssignmentViewModel
-    //    {
-    //        SelectedTeacherId = teacher.Id,
-    //        Subjects = subjects.OrderBy(s => s.Name).ToList(),
-    //        Groups = groups.OrderBy(g => g.Name).ToList(),
-    //        Areas = areas.OrderBy(a => a.Name).ToList(),
-    //        Specialties = specialties.OrderBy(s => s.Name).ToList(),
-    //        GradeLevels = gradeLevels.OrderBy(g => g.Name).ToList(),
-    //        TeachersWithAssignments = grouped
-    //    };
-
-    //    return View(viewModel);
-    //}
-
-
     [HttpPost]
     public async Task<IActionResult> DeleteConfirmed(Guid id)
     {
-        await _teacherAssignmentService.DeleteAsync(id);
+        await _teacherAssignmentService.DeleteAllAssignmentsByTeacherIdAsync(id);
+
         return RedirectToAction(nameof(Index));
     }
 

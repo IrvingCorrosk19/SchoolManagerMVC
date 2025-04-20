@@ -1,0 +1,200 @@
+﻿@model SchoolManager.ViewModels.TeacherGradebookViewModel
+
+@{
+    Layout = "_AdminLayout";
+    ViewData["Title"] = "Portal del Docente";
+}
+
+<div class="container-fluid mt-3">
+    <!-- ENCABEZADO -->
+    <div class="card card-primary card-outline mb-3">
+        <div class="card-body d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-0 text-success">📘 Portal del Docente</h3>
+                <small class="text-muted">@Model.Teacher.FullName – @Model.Teacher.Email</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- FILTROS -->
+    <div class="card card-primary card-outline mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label text-muted fw-semibold">Trimestre</label>
+                    <select id="selTrimester" class="form-select border-secondary-subtle">
+                        @foreach (var t in Model.Trimesters)
+                        {
+                            <option value="@t.Name">@t.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-muted fw-semibold">Materia y Grupo</label>
+                    <select id="selGroup" class="form-select border-secondary-subtle">
+                        @foreach (var subject in Model.Teacher.SubjectGroupDetails)
+                        {
+                            foreach (var group in subject.GroupGradePairs)
+                            {
+                                var value = $"{subject.SubjectId}|{group.GroupId}|{group.GradeLevelId}";
+                                <option value="@value">@subject.SubjectName - @group.GradeLevelName @group.GroupName</option>
+                            }
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FORMULARIO: AGREGAR ACTIVIDAD -->
+    <div class="card card-primary card-outline mb-3">
+        <div class="card-header d-flex align-items-center gap-2">
+            <i class="bi bi-plus-circle text-success fs-4"></i>
+            <h5 class="mb-0">Agregar Nueva Actividad</h5>
+        </div>
+        <div class="card-body">
+            <form id="formNew" enctype="multipart/form-data">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label">Nombre de la Actividad</label>
+                        <input name="Name" class="form-control" placeholder="Ej. Tarea 2, Examen Final" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Tipo</label>
+                        <select name="Type" class="form-select">
+                            @foreach (var t in Model.Types)
+                            {
+                                <option value="@t.Name">@t.Name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">PDF (opcional)</label>
+                        <input name="Pdf" type="file" accept=".pdf" class="form-control" />
+                    </div>
+                    <div class="col-md-2 d-flex">
+                        <button type="submit" class="btn btn-success mt-auto w-100">
+                            <i class="bi bi-plus-circle me-1"></i> Agregar
+                        </button>
+                    </div>
+                </div>
+                <input type="hidden" name="TeacherAssignmentId" value="@Model.TeacherId" />
+            </form>
+        </div>
+    </div>
+
+    <!-- TABLA DE CALIFICACIONES -->
+    <div class="card card-primary card-outline">
+        <div class="card-header bg-dark text-white fw-semibold">
+            <i class="bi bi-journal-check me-2"></i>Registro de Calificaciones
+        </div>
+        <div class="card-body table-responsive bg-white">
+            <table id="gradebook" class="table table-bordered align-middle">
+                <thead class="table-light">
+                    <tr id="hdrRow">
+                        <th>Estudiante</th>
+                    </tr>
+                </thead>
+                <tbody id="bodyRows"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const teacherId = '@Model.TeacherId';
+
+        function loadGradebook() {
+            const combo = $('#selGroup').val();
+            const [subjectId, groupId, gradeLevelId] = combo.split('|');
+            const trimester = $('#selTrimester').val();
+
+            $.get(`/TeacherGradebook/GradeBookJson?groupId=${groupId}&trimester=${trimester}`, data => {
+                renderGradebook(data);
+            });
+
+            // También cargamos los estudiantes por grupo y grado
+            loadStudents(groupId, gradeLevelId);
+        }
+
+        function loadStudents(groupId, gradeLevelId) {
+            $.get(`/TeacherGradebook/StudentsByGroupAndGrade?groupId=${groupId}&gradeId=${gradeLevelId}`, students => {
+                $('#hdrRow').html('<th>Estudiante</th>');
+                $('#bodyRows').empty();
+                students.forEach(stu => {
+                    const row = `<tr><td>${stu.fullName}</td></tr>`;
+                    $('#bodyRows').append(row);
+                });
+            });
+        }
+
+        function renderGradebook(book) {
+            $('#hdrRow').html('<th>Estudiante</th>');
+            book.activities.forEach(a => {
+                $('#hdrRow').append(`<th>${a.name}<br/><small>(${a.type})</small></th>`);
+            });
+
+            $('#bodyRows').empty();
+            book.rows.forEach(r => {
+                let row = `<tr><td>${r.studentName}</td>`;
+                book.activities.forEach(a => {
+                    const score = r.scoresByActivity[a.id] ?? '';
+                    row += `<td contenteditable class="score-cell" data-stu="${r.studentId}" data-act="${a.id}">${score}</td>`;
+                });
+                row += '</tr>';
+                $('#bodyRows').append(row);
+            });
+
+            $('.score-cell').off('blur').on('blur', function () {
+                const val = parseFloat($(this).text()) || 0;
+                const dto = [{
+                    studentId: $(this).data('stu'),
+                    activityId: $(this).data('act'),
+                    score: val
+                }];
+                $.ajax({
+                    url: '/TeacherGradebook/SaveScores',
+                    type: 'POST',
+                    data: JSON.stringify(dto),
+                    contentType: 'application/json'
+                });
+            });
+        }
+
+        $('#btnNew').click(() => {
+            $('input[name="Name"]').val('');
+            $('select[name="Type"]').val('');
+            $('input[name="Pdf"]').val('');
+        });
+
+        $('#formNew').submit(function (e) {
+            e.preventDefault();
+            const combo = $('#selGroup').val();
+            const [subjectId, groupId, gradeLevelId] = combo.split('|');
+            const data = new FormData(this);
+            data.append("TeacherAssignmentId", teacherId);
+            data.append("TrimesterCode", $('#selTrimester').val());
+            data.append("GroupId", groupId);
+            data.append("SubjectId", subjectId);
+            data.append("GradeLevelId", gradeLevelId);
+
+            $.ajax({
+                url: '/TeacherGradebook/CreateActivity',
+                type: 'POST',
+                data: data,
+                processData: false,
+                contentType: false,
+                success: () => {
+                    loadGradebook();
+                }
+            });
+        });
+
+        // Cargar estudiantes y calificaciones al cambiar filtros
+        $(document).ready(() => {
+            $('#selGroup, #selTrimester').on('change', loadGradebook);
+            loadGradebook();
+        });
+    </script>
+}

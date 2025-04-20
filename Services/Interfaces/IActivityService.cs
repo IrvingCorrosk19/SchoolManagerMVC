@@ -1,11 +1,26 @@
-﻿using SchoolManager.Models;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
+using SchoolManager.Dtos;
+using SchoolManager.Models;   // contiene la entidad Activity
 
-public interface IActivityService
+
+namespace SchoolManager.Interfaces
 {
-    Task<List<Activity>> GetAllAsync();
-    Task<Activity?> GetByIdAsync(Guid id);
-    Task CreateAsync(Activity activity);
-    Task UpdateAsync(Activity activity);
-    Task DeleteAsync(Guid id);
-    Task<List<Activity>> GetByGroupAndSubjectAsync(Guid groupId, Guid subjectId);
+    public interface IActivityService
+    {
+        /* Operaciones para el Portal del Docente */
+        Task<ActivityDto> CreateAsync(ActivityCreateDto dto);
+        Task<IEnumerable<ActivityHeaderDto>> GetByTeacherGroupTrimesterAsync(
+            Guid teacherId, Guid groupId, string trimesterCode);
+        Task UploadPdfAsync(Guid activityId, string fileName, Stream content);
+
+        /* CRUD legado (opcional) */
+        Task<List<Activity>> GetAllAsync();
+        Task<Activity?> GetByIdAsync(Guid id);
+        Task UpdateAsync(Activity activity);
+        Task DeleteAsync(Guid id);
+        Task<List<Activity>> GetByGroupAndSubjectAsync(Guid groupId, Guid subjectId);
+    }
 }

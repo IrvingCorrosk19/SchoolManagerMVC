@@ -17,6 +17,10 @@ public partial class SchoolDbContext : DbContext
 
     public virtual DbSet<Activity> Activities { get; set; }
 
+    public virtual DbSet<ActivityAttachment> ActivityAttachments { get; set; }
+
+    public virtual DbSet<ActivityType> ActivityTypes { get; set; }
+
     public virtual DbSet<Area> Areas { get; set; }
 
     public virtual DbSet<Attendance> Attendances { get; set; }
@@ -37,6 +41,8 @@ public partial class SchoolDbContext : DbContext
 
     public virtual DbSet<Student> Students { get; set; }
 
+    public virtual DbSet<StudentActivityScore> StudentActivityScores { get; set; }
+
     public virtual DbSet<StudentAssignment> StudentAssignments { get; set; }
 
     public virtual DbSet<Subject> Subjects { get; set; }
@@ -44,6 +50,8 @@ public partial class SchoolDbContext : DbContext
     public virtual DbSet<SubjectAssignment> SubjectAssignments { get; set; }
 
     public virtual DbSet<TeacherAssignment> TeacherAssignments { get; set; }
+
+    public virtual DbSet<Trimester> Trimesters { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
@@ -62,6 +70,12 @@ public partial class SchoolDbContext : DbContext
             entity.HasKey(e => e.Id).HasName("activities_pkey");
 
             entity.ToTable("activities");
+
+            entity.HasIndex(e => e.GroupId, "idx_activities_group");
+
+            entity.HasIndex(e => e.TeacherId, "idx_activities_teacher");
+
+            entity.HasIndex(e => e.Trimester, "idx_activities_trimester");
 
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("uuid_generate_v4()")
@@ -101,6 +115,58 @@ public partial class SchoolDbContext : DbContext
             entity.HasOne(d => d.Teacher).WithMany(p => p.Activities)
                 .HasForeignKey(d => d.TeacherId)
                 .HasConstraintName("activities_teacher_id_fkey");
+        });
+
+        modelBuilder.Entity<ActivityAttachment>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("activity_attachments_pkey");
+
+            entity.ToTable("activity_attachments");
+
+            entity.HasIndex(e => e.ActivityId, "idx_attach_activity");
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.ActivityId).HasColumnName("activity_id");
+            entity.Property(e => e.FileName)
+                .HasMaxLength(255)
+                .HasColumnName("file_name");
+            entity.Property(e => e.MimeType)
+                .HasMaxLength(50)
+                .HasColumnName("mime_type");
+            entity.Property(e => e.StoragePath)
+                .HasMaxLength(500)
+                .HasColumnName("storage_path");
+            entity.Property(e => e.UploadedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("uploaded_at");
+
+            entity.HasOne(d => d.Activity).WithMany(p => p.ActivityAttachments)
+                .HasForeignKey(d => d.ActivityId)
+                .HasConstraintName("activity_attachments_activity_id_fkey");
+        });
+
+        modelBuilder.Entity<ActivityType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("activity_types_pkey");
+
+            entity.ToTable("activity_types");
+
+            entity.HasIndex(e => e.Name, "activity_types_name_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Description).HasColumnName("description");
+            entity.Property(e => e.Name)
+                .HasMaxLength(30)
+                .HasColumnName("name");
         });
 
         modelBuilder.Entity<Area>(entity =>
@@ -182,7 +248,6 @@ public partial class SchoolDbContext : DbContext
             entity.Property(e => e.UserRole)
                 .HasMaxLength(20)
                 .HasColumnName("user_role");
-
 
             entity.HasOne(d => d.School).WithMany(p => p.AuditLogs)
                 .HasForeignKey(d => d.SchoolId)
@@ -400,6 +465,40 @@ public partial class SchoolDbContext : DbContext
                 .HasConstraintName("students_school_id_fkey");
         });
 
+        modelBuilder.Entity<StudentActivityScore>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("student_activity_scores_pkey");
+
+            entity.ToTable("student_activity_scores");
+
+            entity.HasIndex(e => e.ActivityId, "idx_scores_activity");
+
+            entity.HasIndex(e => e.StudentId, "idx_scores_student");
+
+            entity.HasIndex(e => new { e.StudentId, e.ActivityId }, "uq_scores").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.ActivityId).HasColumnName("activity_id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.Score)
+                .HasPrecision(4, 2)
+                .HasColumnName("score");
+            entity.Property(e => e.StudentId).HasColumnName("student_id");
+
+            entity.HasOne(d => d.Activity).WithMany(p => p.StudentActivityScores)
+                .HasForeignKey(d => d.ActivityId)
+                .HasConstraintName("student_activity_scores_activity_id_fkey");
+
+            entity.HasOne(d => d.Student).WithMany(p => p.StudentActivityScores)
+                .HasForeignKey(d => d.StudentId)
+                .HasConstraintName("student_activity_scores_student_id_fkey");
+        });
+
         modelBuilder.Entity<StudentAssignment>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("student_assignments_pkey");
@@ -540,21 +639,37 @@ public partial class SchoolDbContext : DbContext
                 .HasConstraintName("teacher_assignments_teacher_id_fkey");
         });
 
+        modelBuilder.Entity<Trimester>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("trimesters_pkey");
+
+            entity.ToTable("trimesters");
+
+            entity.HasIndex(e => e.Name, "trimesters_name_key").IsUnique();
+
+            entity.Property(e => e.Id)
+                .HasDefaultValueSql("gen_random_uuid()")
+                .HasColumnName("id");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("created_at");
+            entity.Property(e => e.EndDate).HasColumnName("end_date");
+            entity.Property(e => e.Name)
+                .HasMaxLength(50)
+                .HasColumnName("name");
+            entity.Property(e => e.StartDate).HasColumnName("start_date");
+        });
+
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("users_pkey");
 
             entity.ToTable("users");
 
+            entity.HasIndex(e => e.DocumentId, "users_document_id_key").IsUnique();
+
             entity.HasIndex(e => e.Email, "users_email_key").IsUnique();
-
-            entity.Property(e => e.DocumentId)
-                .HasMaxLength(50)
-                .HasColumnName("document_id");
-
-            entity.HasIndex(e => e.DocumentId)
-                .IsUnique()
-                .HasDatabaseName("users_document_id_key");
 
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("uuid_generate_v4()")
@@ -563,6 +678,9 @@ public partial class SchoolDbContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
+            entity.Property(e => e.DocumentId)
+                .HasMaxLength(50)
+                .HasColumnName("document_id");
             entity.Property(e => e.Email)
                 .HasMaxLength(100)
                 .HasColumnName("email");

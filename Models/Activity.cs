@@ -25,9 +25,13 @@ public partial class Activity
 
     public DateTime? CreatedAt { get; set; }
 
+    public virtual ICollection<ActivityAttachment> ActivityAttachments { get; set; } = new List<ActivityAttachment>();
+
     public virtual Group? Group { get; set; }
 
     public virtual School? School { get; set; }
+
+    public virtual ICollection<StudentActivityScore> StudentActivityScores { get; set; } = new List<StudentActivityScore>();
 
     public virtual Subject? Subject { get; set; }
 

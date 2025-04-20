@@ -1,4 +1,5 @@
-﻿using SchoolManager.Models;
+﻿using SchoolManager.Dtos;
+using SchoolManager.Models;
 
 public interface IStudentService
 {
@@ -8,4 +9,5 @@ public interface IStudentService
     Task UpdateAsync(Student student);
     Task DeleteAsync(Guid id);
     Task<List<Student>> GetByGroupAsync(string groupName);
+    Task<IEnumerable<StudentBasicDto>> GetByGroupAndGradeAsync(Guid groupId, Guid gradeId);
 }

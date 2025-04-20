@@ -28,4 +28,6 @@ public partial class Student
     public virtual User? Parent { get; set; }
 
     public virtual School? School { get; set; }
+
+    public virtual ICollection<StudentActivityScore> StudentActivityScores { get; set; } = new List<StudentActivityScore>();
 }

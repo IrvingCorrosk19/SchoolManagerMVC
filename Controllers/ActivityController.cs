@@ -1,4 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using SchoolManager.Dtos;
+using SchoolManager.Interfaces;
 using SchoolManager.Models;
 
 public class ActivityController : Controller
@@ -9,6 +11,8 @@ public class ActivityController : Controller
     {
         _activityService = activityService;
     }
+
+    /* ---------- LISTAR Y DETALLES (ya funcionaban) ---------- */
 
     public async Task<IActionResult> Index()
     {
@@ -23,18 +27,21 @@ public class ActivityController : Controller
         return View(activity);
     }
 
-    public IActionResult Create() => View();
+    /* ---------- CREAR ---------- */
+
+    public IActionResult Create() => View();          // muestra el formulario vacío
 
     [HttpPost]
-    public async Task<IActionResult> Create(Activity activity)
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Create(ActivityCreateDto dto)   // <-- cambia el parámetro
     {
-        if (ModelState.IsValid)
-        {
-            await _activityService.CreateAsync(activity);
-            return RedirectToAction(nameof(Index));
-        }
-        return View(activity);
+        if (!ModelState.IsValid) return View(dto);
+
+        await _activityService.CreateAsync(dto);      // <-- ahora coincide con la interfaz
+        return RedirectToAction(nameof(Index));
     }
+
+    /* ---------- EDITAR (opcional, sigue usando entidad) ---------- */
 
     public async Task<IActionResult> Edit(Guid id)
     {
@@ -44,15 +51,16 @@ public class ActivityController : Controller
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Activity activity)
     {
-        if (ModelState.IsValid)
-        {
-            await _activityService.UpdateAsync(activity);
-            return RedirectToAction(nameof(Index));
-        }
-        return View(activity);
+        if (!ModelState.IsValid) return View(activity);
+
+        await _activityService.UpdateAsync(activity);
+        return RedirectToAction(nameof(Index));
     }
+
+    /* ---------- ELIMINAR ---------- */
 
     public async Task<IActionResult> Delete(Guid id)
     {
@@ -62,6 +70,7 @@ public class ActivityController : Controller
     }
 
     [HttpPost, ActionName("Delete")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteConfirmed(Guid id)
     {
         await _activityService.DeleteAsync(id);

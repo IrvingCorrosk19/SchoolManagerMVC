@@ -7,6 +7,7 @@ using SchoolManager.Services.Interfaces;
 using SchoolManager.Application.Interfaces;
 using SchoolManager.Infrastructure.Services;
 using SchoolManager.Services;
+using SchoolManager.Interfaces;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -26,7 +27,14 @@ builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<ISubjectService, SubjectService>();
 builder.Services.AddScoped<IGroupService, GroupService>();
 builder.Services.AddScoped<ITeacherAssignmentService, TeacherAssignmentService>();
+builder.Services.AddScoped<ITrimesterService, TrimesterService>();
+builder.Services.AddScoped<IActivityTypeService, ActivityTypeService>();
+builder.Services.AddScoped<ITeacherGroupService, TeacherGroupService>();
 builder.Services.AddScoped<IActivityService, ActivityService>();
+builder.Services.AddScoped<IStudentActivityScoreService, StudentActivityScoreService>();
+
+builder.Services.AddSingleton<IFileStorage, LocalFileStorage>(); // o tu propio servicio
+
 builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 builder.Services.AddScoped<IDisciplineReportService, DisciplineReportService>();
 builder.Services.AddScoped<ISecuritySettingService, SecuritySettingService>();

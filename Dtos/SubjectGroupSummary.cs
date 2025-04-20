@@ -1,9 +1,6 @@
-﻿namespace SchoolManager.Dtos
+﻿public class SubjectGroupSummary
 {
-    public class SubjectGroupSummary
-    {
-        public string SubjectName { get; set; } = "";
-        public List<string> GroupGradePairs { get; set; } = new();
-    }
-
+    public Guid SubjectId { get; set; }
+    public string SubjectName { get; set; } = "";
+    public List<GroupGradeItem> GroupGradePairs { get; set; } = new();
 }
