@@ -2,7 +2,7 @@
 using SchoolManager.Models;
 using SchoolManager.Services.Interfaces;
 using SchoolManager.Dtos;
-
+using System.Globalization;
 
 namespace SchoolManager.Services.Implementations
 {
@@ -15,47 +15,301 @@ namespace SchoolManager.Services.Implementations
             _context = context;
         }
 
-        public async Task<StudentReportDto> GetStudentReportAsync(Guid studentId, string trimester)
+        public async Task<StudentReportDto> GetReportByStudentIdAsync(Guid studentId)
         {
-            var student = await _context.Students.FindAsync(studentId);
-            if (student == null)
-                throw new Exception("Estudiante no encontrado");
-
-
-            // Obtener asistencias del trimestre
-            var trimesterMonths = GetMonthsByTrimester(trimester);
-            var attendanceRecords = await _context.Attendances
-                .Where(a => a.StudentId == studentId && trimesterMonths.Contains(a.Date.Month))
+            // Obtener todos los trimestres disponibles para este estudiante
+            var trimesters = await _context.StudentActivityScores
+                .Where(s => s.StudentId == studentId)
+                .Join(_context.Activities,
+                      score => score.ActivityId,
+                      activity => activity.Id,
+                      (score, activity) => activity.Trimester)
+                .Distinct()
+                .OrderBy(t => t)
                 .ToListAsync();
 
-            var attendanceGrouped = attendanceRecords
-                .GroupBy(a => a.Date.ToString("MMMM"))
-                .Select(g => new AttendanceDto
+            if (!trimesters.Any())
+            {
+                return null; // No hay actividades registradas para el estudiante
+            }
+
+            // Seleccionar SIEMPRE el primer trimestre disponible (por orden: 1T, 2T, 3T)
+            var selectedTrimester = trimesters.FirstOrDefault(t => t == "1T") ??
+                                    trimesters.FirstOrDefault(t => t == "2T") ??
+                                    trimesters.FirstOrDefault(t => t == "3T");
+
+            // Obtener las actividades del estudiante con la calificación para el trimestre seleccionado
+            var studentScores = await _context.StudentActivityScores
+                .Where(s => s.StudentId == studentId)
+                .Join(_context.Activities,
+                      score => score.ActivityId,
+                      activity => activity.Id,
+                      (score, activity) => new
+                      {
+                          activity.GradeLevelId,
+                          activity.GroupId,
+                          activity.SubjectId,
+                          activity.Name,
+                          activity.Trimester,
+                          activity.TeacherId,
+                          score.Score,
+                          score.CreatedAt
+                      })
+                .Where(a => a.Trimester == selectedTrimester)
+                .ToListAsync();
+
+            if (studentScores == null || !studentScores.Any())
+            {
+                return null;
+            }
+
+            // Obtener el Grado y Grupo del estudiante
+            var studentAssignment = await _context.StudentAssignments
+                .Where(sa => sa.StudentId == studentId)
+                .Join(_context.GradeLevels,
+                      sa => sa.GradeId,
+                      gl => gl.Id,
+                      (sa, gl) => new { sa.GroupId, sa.GradeId, GradeName = gl.Name })
+                .Join(_context.Groups,
+                      sa => sa.GroupId,
+                      g => g.Id,
+                      (sa, g) => new { sa.GradeName, GroupName = g.Name })
+                .FirstOrDefaultAsync();
+
+            if (studentAssignment == null)
+            {
+                return null;
+            }
+
+            // Obtener los datos del estudiante
+            var studentData = await _context.Users
+               .Where(u => u.Id == studentId)
+               .Select(u => new { u.Name, u.LastName })
+               .FirstOrDefaultAsync();
+
+            if (studentData == null)
+            {
+                return null;
+            }
+
+            var name = $"{studentData.Name} {studentData.LastName}";
+
+            var grades = studentScores.Select(a => new GradeDto
+            {
+                Subject = _context.Subjects.FirstOrDefault(s => s.Id == a.SubjectId)?.Name ?? "Desconocida",
+                Teacher = _context.Users
+                    .Where(u => u.Id == a.TeacherId)
+                    .Select(u => $"{u.Name ?? "Nombre Desconocido"} {u.LastName ?? "Apellido Desconocido"}")
+                    .FirstOrDefault() ?? "Desconocido",
+                ActivityName = "Actividad", // Cambia esto si tienes un campo real
+                Type = a.Name,
+                Value = a.Score,
+                CreatedAt = a.CreatedAt,
+                FileUrl = _context.Activities.FirstOrDefault(act => act.Name == a.Name && act.TeacherId == a.TeacherId && act.GroupId == a.GroupId && act.SubjectId == a.SubjectId && act.Trimester == a.Trimester)?.PdfUrl
+            }).ToList();
+
+            // --- ASISTENCIA POR TRIMESTRE (solo el trimestre seleccionado) ---
+            var trimesterConfig = await _context.Trimesters.FirstOrDefaultAsync(t => t.Name == selectedTrimester);
+            var attendanceByTrimester = new List<AttendanceDto>();
+            if (trimesterConfig != null)
+            {
+                var asistencias = await _context.Attendances
+                    .Where(a => a.StudentId == studentId && a.Date >= trimesterConfig.StartDate && a.Date <= trimesterConfig.EndDate)
+                    .ToListAsync();
+
+                attendanceByTrimester.Add(new AttendanceDto
                 {
-                    Month = g.Key,
-                    Present = g.Count(x => x.Status == "present"),
-                    Absent = g.Count(x => x.Status == "absent"),
-                    Late = g.Count(x => x.Status == "late")
-                })
-                .ToList();
+                    Month = trimesterConfig.Name, // "1T", "2T", "3T"
+                    Present = asistencias.Count(a => a.Status == "present"),
+                    Absent = asistencias.Count(a => a.Status == "absent"),
+                    Late = asistencias.Count(a => a.Status == "late")
+                });
+            }
+
+            // --- ASISTENCIA POR MES (solo meses dentro del trimestre seleccionado) ---
+            var attendanceByMonth = new List<AttendanceDto>();
+            if (trimesterConfig != null)
+            {
+                var attendanceByMonthRaw = await _context.Attendances
+                    .Where(a => a.StudentId == studentId && a.Date >= trimesterConfig.StartDate && a.Date <= trimesterConfig.EndDate)
+                    .GroupBy(a => new { a.Date.Year, a.Date.Month })
+                    .Select(g => new
+                    {
+                        Year = g.Key.Year,
+                        MonthNumber = g.Key.Month,
+                        Present = g.Count(a => a.Status == "present"),
+                        Absent = g.Count(a => a.Status == "absent"),
+                        Late = g.Count(a => a.Status == "late")
+                    })
+                    .OrderBy(g => g.Year).ThenBy(g => g.MonthNumber)
+                    .ToListAsync();
+
+                attendanceByMonth = attendanceByMonthRaw
+                    .Select(g => new AttendanceDto
+                    {
+                        Month = new DateTime(g.Year, g.MonthNumber, 1).ToString("MMMM", new CultureInfo("es-ES")),
+                        Present = g.Present,
+                        Absent = g.Absent,
+                        Late = g.Late
+                    })
+                    .ToList();
+            }
 
             return new StudentReportDto
             {
-                StudentName = student.Name,
-                Grade = student.Grade ?? "N/A",
-                Attendance = attendanceGrouped
+                StudentId = studentId,
+                StudentName = name,
+                Grade = $"{studentAssignment.GradeName} - {studentAssignment.GroupName}",
+                Grades = grades,
+                AttendanceByTrimester = attendanceByTrimester,
+                AttendanceByMonth = attendanceByMonth,
+                Trimester = selectedTrimester,
+                AvailableTrimesters = trimesters
+                    .Select(t => new AvailableTrimesters { Trimester = t })
+                    .ToList()
             };
         }
 
-        private List<int> GetMonthsByTrimester(string trimester)
+
+        public async Task<StudentReportDto> GetReportByStudentIdAndTrimesterAsync(Guid studentId, string trimester)
         {
-            return trimester switch
+            // Obtener las actividades del estudiante con las calificaciones para el trimestre seleccionado
+            var studentScores = await _context.StudentActivityScores
+                .Where(s => s.StudentId == studentId)
+                .Join(_context.Activities,
+                      score => score.ActivityId,
+                      activity => activity.Id,
+                      (score, activity) => new
+                      {
+                          activity.GradeLevelId,
+                          activity.GroupId,
+                          activity.SubjectId,
+                          activity.Name,
+                          activity.Trimester,
+                          activity.TeacherId,
+                          score.Score,
+                          score.CreatedAt
+                      })
+                .Where(a => a.Trimester == trimester)
+                .ToListAsync();
+
+            if (studentScores == null || !studentScores.Any())
             {
-                "1T" => new List<int> { 1, 2, 3 },
-                "2T" => new List<int> { 4, 5, 6 },
-                "3T" => new List<int> { 7, 8, 9 },
-                _ => new List<int>()
+                return null;
+            }
+
+            // Obtener el Grado y Grupo del estudiante, optimizando con un solo JOIN
+            var studentAssignment = await _context.StudentAssignments
+                .Where(sa => sa.StudentId == studentId)
+                .Join(_context.GradeLevels,
+                      sa => sa.GradeId,
+                      gl => gl.Id,
+                      (sa, gl) => new { sa.GroupId, sa.GradeId, GradeName = gl.Name })
+                .Join(_context.Groups,
+                      sa => sa.GroupId,
+                      g => g.Id,
+                      (sa, g) => new { sa.GradeName, GroupName = g.Name })
+                .SingleOrDefaultAsync(); // Usar SingleOrDefaultAsync ya que se espera un solo registro
+
+            if (studentAssignment == null)
+            {
+                return null;
+            }
+
+            // Obtener los datos del estudiante, optimizando con un solo SELECT
+            var studentData = await _context.Users
+                .Where(u => u.Id == studentId)
+                .Select(u => new { u.Name, u.LastName })
+                .SingleOrDefaultAsync(); // También usar SingleOrDefaultAsync
+
+            if (studentData == null)
+            {
+                return null;
+            }
+
+            var name = $"{studentData.Name} {studentData.LastName}";
+
+            // Crear la lista de calificaciones
+            var grades = studentScores.Select(a => new GradeDto
+            {
+                Subject = _context.Subjects.FirstOrDefault(s => s.Id == a.SubjectId)?.Name ?? "Desconocida",
+                Teacher = _context.Users
+                    .Where(u => u.Id == a.TeacherId)
+                    .Select(u => $"{u.Name ?? "Nombre Desconocido"} {u.LastName ?? "Apellido Desconocido"}")
+                    .FirstOrDefault() ?? "Desconocido",
+                ActivityName = "Actividad", // Cambia esto si tienes un campo real
+                Type = a.Name,
+                Value = a.Score,
+                CreatedAt = a.CreatedAt,
+                FileUrl = _context.Activities.FirstOrDefault(act => act.Name == a.Name && act.TeacherId == a.TeacherId && act.GroupId == a.GroupId && act.SubjectId == a.SubjectId && act.Trimester == a.Trimester)?.PdfUrl
+            }).ToList();
+
+            // --- ASISTENCIA POR TRIMESTRE (solo el trimestre seleccionado) ---
+            var trimesterConfig = await _context.Trimesters.FirstOrDefaultAsync(t => t.Name == trimester);
+            var attendanceByTrimester = new List<AttendanceDto>();
+            if (trimesterConfig != null)
+            {
+                var asistencias = await _context.Attendances
+                    .Where(a => a.StudentId == studentId && a.Date >= trimesterConfig.StartDate && a.Date <= trimesterConfig.EndDate)
+                    .ToListAsync();
+
+                attendanceByTrimester.Add(new AttendanceDto
+                {
+                    Month = trimesterConfig.Name, // "1T", "2T", "3T"
+                    Present = asistencias.Count(a => a.Status == "present"),
+                    Absent = asistencias.Count(a => a.Status == "absent"),
+                    Late = asistencias.Count(a => a.Status == "late")
+                });
+            }
+
+            // --- ASISTENCIA POR MES (solo meses dentro del trimestre seleccionado) ---
+            var attendanceByMonth = new List<AttendanceDto>();
+            if (trimesterConfig != null)
+            {
+                var attendanceByMonthRaw = await _context.Attendances
+                    .Where(a => a.StudentId == studentId && a.Date >= trimesterConfig.StartDate && a.Date <= trimesterConfig.EndDate)
+                    .GroupBy(a => new { a.Date.Year, a.Date.Month })
+                    .Select(g => new
+                    {
+                        Year = g.Key.Year,
+                        MonthNumber = g.Key.Month,
+                        Present = g.Count(a => a.Status == "present"),
+                        Absent = g.Count(a => a.Status == "absent"),
+                        Late = g.Count(a => a.Status == "late")
+                    })
+                    .OrderBy(g => g.Year).ThenBy(g => g.MonthNumber)
+                    .ToListAsync();
+
+                attendanceByMonth = attendanceByMonthRaw
+                    .Select(g => new AttendanceDto
+                    {
+                        Month = new DateTime(g.Year, g.MonthNumber, 1).ToString("MMMM", new CultureInfo("es-ES")),
+                        Present = g.Present,
+                        Absent = g.Absent,
+                        Late = g.Late
+                    })
+                    .ToList();
+            }
+
+            // Devolver el DTO con la información
+            return new StudentReportDto
+            {
+                StudentId = studentId,
+                StudentName = name,
+                Grade = $"{studentAssignment.GradeName} - {studentAssignment.GroupName}",
+                Grades = grades,
+                AttendanceByTrimester = attendanceByTrimester,
+                AttendanceByMonth = attendanceByMonth,
+                Trimester = trimester
             };
         }
+
+
+
+
+
+
     }
 }
+
+

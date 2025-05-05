@@ -17,5 +17,5 @@ public partial class StudentActivityScore
 
     public virtual Activity Activity { get; set; } = null!;
 
-    public virtual Student Student { get; set; } = null!;
+    public virtual User Student { get; set; } = null!;
 }

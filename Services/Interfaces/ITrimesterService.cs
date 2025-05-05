@@ -2,10 +2,13 @@
 using System.Threading.Tasks;
 using SchoolManager.Dtos;
 
-namespace SchoolManager.Interfaces
+namespace SchoolManager.Services.Interfaces
 {
     public interface ITrimesterService
     {
-        Task<IEnumerable<TrimesterDto>> GetAllAsync();
+        Task<List<TrimesterDto>> GetAllAsync();
+        Task GuardarTrimestresAsync(List<TrimesterDto> trimestres);
+        Task<bool> EditarFechasTrimestreAsync(TrimesterDto dto);
+        Task EliminarTodosLosTrimestresAsync();
     }
 }

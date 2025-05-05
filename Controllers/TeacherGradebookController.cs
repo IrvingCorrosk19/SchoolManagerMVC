@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
@@ -6,8 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 using SchoolManager.Dtos;
 using SchoolManager.Interfaces;
 using SchoolManager.Models;
-using SchoolManager.Services;
+using SchoolManager.Services.Interfaces;
 using SchoolManager.ViewModels;
+using Microsoft.EntityFrameworkCore;
 
 namespace SchoolManager.Controllers
 {
@@ -42,10 +44,113 @@ namespace SchoolManager.Controllers
             _userService = userService;
             
         }
-        [HttpGet]
-        public async Task<JsonResult> StudentsByGroupAndGrade(Guid groupId, Guid gradeId)
+
+
+        [HttpPost]
+        public async Task<IActionResult> GuardarNotasTemp([FromBody] List<StudentNotaDto> data)  
         {
-            var students = await _studentService.GetByGroupAndGradeAsync(groupId, gradeId);
+            if (data == null || !data.Any())
+                return BadRequest("No se recibió información de notas.");
+
+            var registros = new List<StudentActivityScoreCreateDto>();
+
+            foreach (var alumno in data)
+            {
+                foreach (var nota in alumno.Notas)
+                {
+                    registros.Add(new StudentActivityScoreCreateDto
+                    {
+                        StudentId = Guid.Parse(alumno.StudentId),
+                        ActivityName = nota.Actividad,
+                        Type = nota.Tipo,
+                        Score = decimal.Parse(nota.Nota),
+                        SubjectId = Guid.Parse(alumno.SubjectId),
+                        GradeLevelId = Guid.Parse(alumno.GradeLevelId),
+                        GroupId = Guid.Parse(alumno.GroupId),
+                        TeacherId = Guid.Parse(alumno.TeacherId),
+                        Trimester = alumno.Trimester
+
+                    });
+                }
+            }
+
+            await _scoreSvc.SaveBulkFromNotasAsync(registros);
+
+            return Ok(new { message = "Notas procesadas y guardadas correctamente." });
+        }
+
+
+
+        [HttpPost]
+        public async Task<IActionResult> GetNotasCargadas([FromBody] GetNotesDto notes)
+        {
+            if (notes == null)
+            {
+                return BadRequest("Los datos están incompletos.");
+            }
+
+            // Obtener todas las actividades del grupo, materia, docente y trimestre
+            var activities = await _activitySvc.GetByTeacherGroupTrimesterAsync(notes.TeacherId, notes.GroupId, notes.Trimester);
+            var actividadesPorTipo = activities.GroupBy(a => a.Type.ToLower()).ToDictionary(g => g.Key, g => g.ToList());
+
+            // Obtener las notas existentes (como antes)
+            var notas = await _scoreSvc.GetNotasPorFiltroAsync(notes);
+            var estudiantes = notas.Select(n => n.StudentId).Distinct().ToList();
+
+            // Si no hay estudiantes con notas, obtener la lista de estudiantes del grupo
+            if (!estudiantes.Any())
+            {
+                // Usar el servicio para obtener los estudiantes del grupo
+                var students = await _studentService.GetByGroupAndGradeAsync(notes.GroupId, notes.GradeLevelId);
+                estudiantes = students.Select(s => s.StudentId.ToString()).ToList();
+            }
+
+            // Construir la respuesta para cada estudiante
+            var data = estudiantes.Select(studentId => {
+                var alumno = notas.FirstOrDefault(n => n.StudentId == studentId);
+                var notasAlumno = alumno?.Notas ?? new List<NotaDetalleDto>();
+                var notasPorActividad = new List<object>();
+
+                foreach (var tipo in actividadesPorTipo.Keys)
+                {
+                    foreach (var act in actividadesPorTipo[tipo])
+                    {
+                        var nota = notasAlumno.FirstOrDefault(n => n.Tipo.ToLower() == tipo && n.Actividad == act.Name);
+                        notasPorActividad.Add(new {
+                            tipo = tipo,
+                            actividad = act.Name,
+                            nota = nota != null ? nota.Nota : null,
+                            pdfUrl = act.PdfUrl
+                        });
+                    }
+                }
+
+                return new {
+                    studentId = studentId,
+                    fullName = alumno?.StudentId ?? "",
+                    notas = notasPorActividad
+                };
+            }).ToList();
+
+            return Json(data);
+        }
+
+
+
+        [HttpGet]
+        public async Task<JsonResult> StudentsByGroupAndGrade(Guid groupId, Guid gradeId, Guid? subjectId = null)
+        {
+            IEnumerable<StudentBasicDto> students;
+            if (subjectId.HasValue && subjectId.Value != Guid.Empty)
+            {
+                // Filtrar por materia, grupo y grado
+                students = await _studentService.GetBySubjectGroupAndGradeAsync(subjectId.Value, groupId, gradeId);
+            }
+            else
+            {
+                // Filtrar solo por grupo y grado (comportamiento anterior)
+                students = await _studentService.GetByGroupAndGradeAsync(groupId, gradeId);
+            }
             return Json(students);
         }
         private Guid GetTeacherId()
@@ -58,6 +163,12 @@ namespace SchoolManager.Controllers
 
             throw new UnauthorizedAccessException("No se pudo obtener el ID del docente.");
         }
+
+
+
+
+
+
         public async Task<IActionResult> Index()
         {
             var teacherId = GetTeacherId();
@@ -126,6 +237,9 @@ namespace SchoolManager.Controllers
         }
 
 
+
+
+
         // GET: /TeacherGradebook/GradeBookJson?groupId=...&trimester=...
         [HttpGet]
         public async Task<JsonResult> GradeBookJson(Guid groupId, string trimester)
@@ -135,9 +249,15 @@ namespace SchoolManager.Controllers
             return Json(book);
         }
 
+
+
+
+
+
         // POST: /TeacherGradebook/CreateActivity
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequestSizeLimit(52428800)]
         public async Task<JsonResult> CreateActivity([FromForm] ActivityCreateDto dto)
         {
             try
@@ -150,6 +270,11 @@ namespace SchoolManager.Controllers
                 return Json(new { success = false, error = ex.Message });
             }
         }
+
+
+
+
+
 
         // POST: /TeacherGradebook/SaveScores
         [HttpPost]
@@ -166,6 +291,9 @@ namespace SchoolManager.Controllers
             }
         }
 
+
+
+
         // DELETE: /TeacherGradebook/DeleteActivity/{id}
         [HttpDelete]
         public async Task<IActionResult> DeleteActivity(Guid id)
@@ -178,6 +306,31 @@ namespace SchoolManager.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { success = false, error = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> GetPromediosFinales([FromBody] GetNotesDto notes)
+        {
+            if (notes == null)
+            {
+                return BadRequest("Los datos están incompletos.");
+            }
+
+            try
+            {
+                var promedios = await _scoreSvc.GetPromediosFinalesAsync(notes);
+                return Json(new { 
+                    success = true, 
+                    data = promedios 
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { 
+                    success = false, 
+                    error = ex.Message 
+                });
             }
         }
     }

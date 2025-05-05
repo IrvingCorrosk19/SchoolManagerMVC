@@ -25,6 +25,8 @@ public partial class Activity
 
     public DateTime? CreatedAt { get; set; }
 
+    public Guid? GradeLevelId { get; set; }
+
     public virtual ICollection<ActivityAttachment> ActivityAttachments { get; set; } = new List<ActivityAttachment>();
 
     public virtual Group? Group { get; set; }

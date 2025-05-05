@@ -57,9 +57,32 @@ namespace SchoolManager.Services
                                 join student in _context.Users on sa.StudentId equals student.Id
                                 join grade in _context.GradeLevels on sa.GradeId equals grade.Id
                                 join grupo in _context.Groups on sa.GroupId equals grupo.Id
-                                where student.Role == "estudiante"
+                                where (student.Role == "estudiante" || student.Role == "student" || student.Role == "alumno")
                                       && sa.GroupId == groupId
                                       && sa.GradeId == gradeId
+                                orderby student.Name
+                                select new StudentBasicDto
+                                {
+                                    StudentId = student.Id,
+                                    FullName = student.Name,
+                                    GradeName = grade.Name,
+                                    GroupName = grupo.Name
+                                }).ToListAsync();
+
+            return result;
+        }
+
+        public async Task<IEnumerable<StudentBasicDto>> GetBySubjectGroupAndGradeAsync(Guid subjectId, Guid groupId, Guid gradeId)
+        {
+            var result = await (from sa in _context.StudentAssignments
+                                join student in _context.Users on sa.StudentId equals student.Id
+                                join grade in _context.GradeLevels on sa.GradeId equals grade.Id
+                                join grupo in _context.Groups on sa.GroupId equals grupo.Id
+                                join subjectAssign in _context.SubjectAssignments on new { sa.GradeId, sa.GroupId } equals new { GradeId = subjectAssign.GradeLevelId, GroupId = subjectAssign.GroupId }
+                                where (student.Role == "estudiante" || student.Role == "student" || student.Role == "alumno")
+                                      && sa.GroupId == groupId
+                                      && sa.GradeId == gradeId
+                                      && subjectAssign.SubjectId == subjectId
                                 orderby student.Name
                                 select new StudentBasicDto
                                 {

@@ -77,6 +77,8 @@ public partial class SchoolDbContext : DbContext
 
             entity.HasIndex(e => e.Trimester, "idx_activities_trimester");
 
+            entity.HasIndex(e => new { e.Name, e.Type, e.SubjectId, e.GroupId, e.TeacherId, e.Trimester }, "idx_activities_unique_lookup");
+
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("uuid_generate_v4()")
                 .HasColumnName("id");
@@ -84,6 +86,7 @@ public partial class SchoolDbContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
+            entity.Property(e => e.GradeLevelId).HasColumnName("grade_level_id");
             entity.Property(e => e.GroupId).HasColumnName("group_id");
             entity.Property(e => e.Name)
                 .HasMaxLength(100)
@@ -202,17 +205,27 @@ public partial class SchoolDbContext : DbContext
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
             entity.Property(e => e.Date).HasColumnName("date");
+            entity.Property(e => e.GradeId).HasColumnName("grade_id");
+            entity.Property(e => e.GroupId).HasColumnName("group_id");
             entity.Property(e => e.Status)
                 .HasMaxLength(10)
                 .HasColumnName("status");
             entity.Property(e => e.StudentId).HasColumnName("student_id");
             entity.Property(e => e.TeacherId).HasColumnName("teacher_id");
 
-            entity.HasOne(d => d.Student).WithMany(p => p.Attendances)
+            entity.HasOne(d => d.Grade).WithMany(p => p.Attendances)
+                .HasForeignKey(d => d.GradeId)
+                .HasConstraintName("attendance_grade_id_fkey");
+
+            entity.HasOne(d => d.Group).WithMany(p => p.Attendances)
+                .HasForeignKey(d => d.GroupId)
+                .HasConstraintName("attendance_group_id_fkey");
+
+            entity.HasOne(d => d.Student).WithMany(p => p.AttendanceStudents)
                 .HasForeignKey(d => d.StudentId)
                 .HasConstraintName("attendance_student_id_fkey");
 
-            entity.HasOne(d => d.Teacher).WithMany(p => p.Attendances)
+            entity.HasOne(d => d.Teacher).WithMany(p => p.AttendanceTeachers)
                 .HasForeignKey(d => d.TeacherId)
                 .HasConstraintName("attendance_teacher_id_fkey");
         });
@@ -496,6 +509,7 @@ public partial class SchoolDbContext : DbContext
 
             entity.HasOne(d => d.Student).WithMany(p => p.StudentActivityScores)
                 .HasForeignKey(d => d.StudentId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("student_activity_scores_student_id_fkey");
         });
 
@@ -582,6 +596,9 @@ public partial class SchoolDbContext : DbContext
             entity.Property(e => e.GradeLevelId).HasColumnName("grade_level_id");
             entity.Property(e => e.GroupId).HasColumnName("group_id");
             entity.Property(e => e.SpecialtyId).HasColumnName("specialty_id");
+            entity.Property(e => e.Status)
+                .HasMaxLength(10)
+                .HasColumnName("status");
             entity.Property(e => e.SubjectId).HasColumnName("subject_id");
 
             entity.HasOne(d => d.Area).WithMany(p => p.SubjectAssignments)
@@ -645,8 +662,6 @@ public partial class SchoolDbContext : DbContext
 
             entity.ToTable("trimesters");
 
-            entity.HasIndex(e => e.Name, "trimesters_name_key").IsUnique();
-
             entity.Property(e => e.Id)
                 .HasDefaultValueSql("gen_random_uuid()")
                 .HasColumnName("id");
@@ -656,7 +671,7 @@ public partial class SchoolDbContext : DbContext
                 .HasColumnName("created_at");
             entity.Property(e => e.EndDate).HasColumnName("end_date");
             entity.Property(e => e.Name)
-                .HasMaxLength(50)
+                .HasMaxLength(10)
                 .HasColumnName("name");
             entity.Property(e => e.StartDate).HasColumnName("start_date");
         });
@@ -678,6 +693,10 @@ public partial class SchoolDbContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("timestamp without time zone")
                 .HasColumnName("created_at");
+            entity.Property(e => e.DateOfBirth)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("timestamp without time zone")
+                .HasColumnName("date_of_birth");
             entity.Property(e => e.DocumentId)
                 .HasMaxLength(50)
                 .HasColumnName("document_id");

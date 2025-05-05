@@ -19,6 +19,8 @@ public partial class SubjectAssignment
 
     public DateTime? CreatedAt { get; set; }
 
+    public string? Status { get; set; }
+
     public virtual Area Area { get; set; } = null!;
 
     public virtual GradeLevel GradeLevel { get; set; } = null!;

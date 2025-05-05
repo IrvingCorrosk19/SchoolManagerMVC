@@ -1,7 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using SchoolManager.Services;
-using SchoolManager.Dtos;
 using SchoolManager.Services.Interfaces;
+using SchoolManager.Dtos;
+using System;
+using System.Threading.Tasks;
+using SchoolManager.Models;
+using SchoolManager.Services.Implementations;
+using System.Linq;
 
 public class StudentReportController : Controller
 {
@@ -12,74 +16,70 @@ public class StudentReportController : Controller
         _reportService = reportService;
     }
 
-    public async Task<IActionResult> Index(Guid studentId, string trimester = "1T")
+    public async Task<IActionResult> Index()
     {
-        var report = new StudentReportDto
-        {
-            StudentName = "Estudiante de Prueba",
-            Grade = "5to",
+        // Aquí 'quemamos' el studentId, lo que significa que no puedes cambiarlo dinámicamente
+        var studentId = Guid.Parse("43403bf4-2e34-43fe-bc14-91770aafc9e9");
 
-            Grades = new List<GradeDto>
-        {
-            new GradeDto
-            {
-                Subject = "Matemáticas",
-                Teacher = "Profa. García",
-                ActivityName = "Examen Parcial",
-                Type = "Examen",
-                Value = 8.7m,
-                CreatedAt = DateTime.Now.AddDays(-10)
-            },
-            new GradeDto
-            {
-                Subject = "Ciencias",
-                Teacher = "Prof. Pérez",
-                ActivityName = "Proyecto",
-                Type = "Tarea",
-                Value = 9.3m,
-                CreatedAt = DateTime.Now.AddDays(-20)
-            },
-            new GradeDto
-            {
-                Subject = "Lengua",
-                Teacher = "Profa. Ramírez",
-                ActivityName = "Ensayo",
-                Type = "Tarea",
-                Value = 7.9m,
-                CreatedAt = DateTime.Now.AddDays(-5)
-            }
-        },
+        // Obtener el reporte real desde el servicio (sin pasar trimestre)
+        var report = await _reportService.GetReportByStudentIdAsync(studentId);
 
-            Attendance = new List<AttendanceDto>
+        if (report == null)
         {
-            new AttendanceDto
-            {
-                Month = "Enero",
-                Present = 18,
-                Absent = 1,
-                Late = 2
-            },
-            new AttendanceDto
-            {
-                Month = "Febrero",
-                Present = 17,
-                Absent = 2,
-                Late = 1
-            },
-            new AttendanceDto
-            {
-                Month = "Marzo",
-                Present = 20,
-                Absent = 0,
-                Late = 0
-            }
+            return NotFound("No se encontró el reporte para este estudiante.");
         }
-        };
 
-        ViewBag.Trimester = trimester;
-        ViewBag.StudentId = studentId;
-
+        // Forzar que el trimestre seleccionado sea 1T si existe, si no el primero disponible
+        var availableTrimesters = report.AvailableTrimesters.Select(t => t.Trimester).ToList();
+        string selectedTrimester = availableTrimesters.Contains("1T") ? "1T" : availableTrimesters.FirstOrDefault();
+        if (selectedTrimester != null && report.Trimester != selectedTrimester)
+        {
+            // Volver a pedir el reporte solo para el trimestre seleccionado
+            report = await _reportService.GetReportByStudentIdAndTrimesterAsync(studentId, selectedTrimester);
+            report.AvailableTrimesters = availableTrimesters.Select(t => new AvailableTrimesters { Trimester = t }).ToList();
+        }
+        report.StudentId = studentId;
+        ViewBag.AvailableTrimesters = report.AvailableTrimesters;
         return View(report);
     }
 
+    
+    public async Task<IActionResult> GetTrimesterData(Guid studentId, string trimester)
+    {
+        var report = await _reportService.GetReportByStudentIdAndTrimesterAsync(studentId, trimester);
+
+        if (report == null)
+        {
+            return Json(new { error = "No se encontraron datos para el trimestre seleccionado." });
+        }
+
+        return Json(new
+        {
+            grades = report.Grades.Select(g => new
+            {
+                type = g.Type,
+                teacher = g.Teacher,
+                value = g.Value
+            }),
+            trimester = report.Trimester,
+            attendanceByTrimester = report.AttendanceByTrimester.Select(a => new {
+                month = a.Month,
+                present = a.Present,
+                absent = a.Absent,
+                late = a.Late
+            }),
+            attendanceByMonth = report.AttendanceByMonth.Select(a => new {
+                month = a.Month,
+                present = a.Present,
+                absent = a.Absent,
+                late = a.Late
+            })
+        });
+    }
+
+
+
+
 }
+
+

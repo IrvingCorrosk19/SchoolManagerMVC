@@ -5,6 +5,7 @@
         Admin,
         Director,
         Teacher,
-        Estudiante
+        Estudiante,
+        Padres
     }
 }

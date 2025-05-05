@@ -1,5 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SchoolManager.Models;
+using SchoolManager.Dtos;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 public class AttendanceController : Controller
 {
@@ -66,5 +70,46 @@ public class AttendanceController : Controller
     {
         await _attendanceService.DeleteAsync(id);
         return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SaveAttendances([FromBody] List<AttendanceSaveDto> attendances)
+    {
+        try
+        {
+            await _attendanceService.SaveAttendancesAsync(attendances);
+            return Ok(new { success = true, message = "Asistencias guardadas correctamente." });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Historial([FromBody] HistorialAsistenciaFiltroDto filtro)
+    {
+        try
+        {
+            var resultado = await _attendanceService.GetHistorialAsistenciaAsync(filtro);
+            return Json(resultado);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> Estadisticas([FromBody] EstadisticasFiltroDto filtro)
+    {
+        Console.WriteLine($"Trimestre: {filtro.Trimestre}, Inicio: {filtro.FechaInicio}, Fin: {filtro.FechaFin}");
+        if (filtro == null || filtro.GroupId == Guid.Empty || filtro.GradeId == Guid.Empty || string.IsNullOrEmpty(filtro.Trimestre))
+            return BadRequest("Faltan datos para la consulta.");
+
+        var estadisticas = await _attendanceService.GetEstadisticasAsync(
+            filtro.GroupId, filtro.GradeId, filtro.Trimestre, filtro.FechaInicio, filtro.FechaFin
+        );
+        return Json(estadisticas);
     }
 }

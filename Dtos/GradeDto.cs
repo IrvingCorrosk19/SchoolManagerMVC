@@ -8,6 +8,7 @@
         public string Type { get; set; } = string.Empty;
         public decimal Value { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string? FileUrl { get; set; }
     }
 
 }

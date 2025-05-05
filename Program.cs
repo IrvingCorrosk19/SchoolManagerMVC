@@ -15,12 +15,12 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Conexión a la base de datos PostgreSQL
+// Conexiï¿½n a la base de datos PostgreSQL
 builder.Services.AddDbContext<SchoolDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
-// Registrando todos los servicios con inyección de dependencias
+// Registrando todos los servicios con inyecciï¿½n de dependencias
 builder.Services.AddScoped<ISchoolService, SchoolService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
@@ -48,6 +48,7 @@ builder.Services.AddScoped<IStudentAssignmentService, StudentAssignmentService>(
 builder.Services.AddScoped<IAreaService, AreaService>();
 builder.Services.AddScoped<ISpecialtyService, SpecialtyService>();
 builder.Services.AddScoped<ISubjectAssignmentService, SubjectAssignmentService>();
+builder.Services.AddScoped<IDirectorService, DirectorService>();
 
 
 builder.Services.AddControllers()
