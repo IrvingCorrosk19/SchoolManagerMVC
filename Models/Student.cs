@@ -21,13 +21,7 @@ public partial class Student
 
     public DateTime? CreatedAt { get; set; }
 
-    public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
-
-    public virtual ICollection<DisciplineReport> DisciplineReports { get; set; } = new List<DisciplineReport>();
-
     public virtual User? Parent { get; set; }
 
     public virtual School? School { get; set; }
-
-    public virtual ICollection<StudentActivityScore> StudentActivityScores { get; set; } = new List<StudentActivityScore>();
 }

@@ -13,5 +13,5 @@ public partial class Trimester
 
     public DateOnly EndDate { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTime? CreatedAt { get; set; }
 }

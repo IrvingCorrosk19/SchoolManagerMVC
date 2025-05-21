@@ -1,6 +1,7 @@
 ﻿using SchoolManager.Models;
 using Microsoft.EntityFrameworkCore;
 using SchoolManager.Enums;
+using BCrypt.Net;
 
 public class UserService : IUserService
 {
@@ -96,6 +97,9 @@ public class UserService : IUserService
     {
         try
         {
+            // Hash de la contraseña
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
+            
             // Cargar las entidades completas desde la base de datos
             var subjects = await _context.Subjects.Where(s => subjectIds.Contains(s.Id)).ToListAsync();
             var groups = await _context.Groups.Where(g => groupIds.Contains(g.Id)).ToListAsync();
@@ -109,8 +113,6 @@ public class UserService : IUserService
         }
         catch (Exception ex)
         {
-            // Aquí puedes registrar el error o lanzarlo nuevamente
-            // Por ejemplo, puedes usar un logger o simplemente lanzar de nuevo
             throw new Exception("Error al crear el usuario y asignar relaciones.", ex);
         }
     }
@@ -146,6 +148,9 @@ public class UserService : IUserService
     {
         try
         {
+            // Hash de la contraseña
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(user.PasswordHash);
+            
             var subjects = await _context.Subjects.Where(s => subjectIds.Contains(s.Id)).ToListAsync();
             var groups = await _context.Groups.Where(g => groupIds.Contains(g.Id)).ToListAsync();
             var grades = await _context.GradeLevels.Where(g => gradeLevelIds.Contains(g.Id)).ToListAsync();
@@ -191,7 +196,7 @@ public async Task DeleteAsync(Guid id)
 
         switch (parsedRole)
         {
-            case UserRole.Estudiante:
+            case UserRole.Student:
                 var studentAssignments = await _context.StudentAssignments
                     .Where(sa => sa.StudentId == id)
                     .ToListAsync();

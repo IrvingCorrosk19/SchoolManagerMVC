@@ -19,6 +19,12 @@ namespace SchoolManager.ViewModels
 
         public string? DocumentId { get; set; }
 
+        [Required(ErrorMessage = "Identificación es obligatoria.")]
+
+        public DateTime DateOfBirth { get; set; }
+
+        [Required(ErrorMessage = "La fecha de nacimiento es obligatoria.")]
+
         public string? PasswordHash { get; set; }
 
         [Required(ErrorMessage = "El rol es obligatorio.")]

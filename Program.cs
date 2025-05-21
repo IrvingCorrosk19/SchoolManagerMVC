@@ -8,19 +8,21 @@ using SchoolManager.Application.Interfaces;
 using SchoolManager.Infrastructure.Services;
 using SchoolManager.Services;
 using SchoolManager.Interfaces;
-
+using Microsoft.AspNetCore.Authentication.Cookies;
+using BCrypt.Net;
+using SchoolManager.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Conexi髇 a la base de datos PostgreSQL
+// Conexi贸n a la base de datos PostgreSQL
 builder.Services.AddDbContext<SchoolDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 
-// Registrando todos los servicios con inyecci髇 de dependencias
+// Registrando todos los servicios con inyecci贸n de dependencias
 builder.Services.AddScoped<ISchoolService, SchoolService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IStudentService, StudentService>();
@@ -39,7 +41,7 @@ builder.Services.AddScoped<IAttendanceService, AttendanceService>();
 builder.Services.AddScoped<IDisciplineReportService, DisciplineReportService>();
 builder.Services.AddScoped<ISecuritySettingService, SecuritySettingService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
-builder.Services.AddScoped<IParentService, ParentService>();
+
 builder.Services.AddAutoMapper(typeof(AutoMapperProfile).Assembly);
 builder.Services.AddScoped<IStudentReportService, StudentReportService>();
 builder.Services.AddScoped<IGradeLevelService, GradeLevelService>();
@@ -48,7 +50,23 @@ builder.Services.AddScoped<IStudentAssignmentService, StudentAssignmentService>(
 builder.Services.AddScoped<IAreaService, AreaService>();
 builder.Services.AddScoped<ISpecialtyService, SpecialtyService>();
 builder.Services.AddScoped<ISubjectAssignmentService, SubjectAssignmentService>();
+builder.Services.AddScoped<IDirectorService, DirectorService>();
 
+// Agregar servicios de autenticaci贸n
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Auth/Login";
+        options.LogoutPath = "/Auth/Logout";
+        options.AccessDeniedPath = "/Auth/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromHours(24);
+        options.SlidingExpiration = true;
+    });
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IMenuService, MenuService>();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
@@ -56,6 +74,10 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
     });
 
+// C贸digo temporal para generar hash de contrase帽a
+var password = "Admin123!";
+var hash = BCrypt.Net.BCrypt.HashPassword(password);
+Console.WriteLine($"Hash generado: {hash}");
 
 var app = builder.Build();
 
@@ -69,10 +91,14 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
+
+// Usar el m茅todo de extensi贸n para el middleware
+// app.UseSessionValidation();
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Auth}/{action=Login}/{id?}");
 
 app.Run();

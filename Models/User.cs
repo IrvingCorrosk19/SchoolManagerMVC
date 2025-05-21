@@ -29,15 +29,23 @@ public partial class User
 
     public string? DocumentId { get; set; }
 
+    public DateTime? DateOfBirth { get; set; }
+
     public virtual ICollection<Activity> Activities { get; set; } = new List<Activity>();
 
-    public virtual ICollection<Attendance> Attendances { get; set; } = new List<Attendance>();
+    public virtual ICollection<Attendance> AttendanceStudents { get; set; } = new List<Attendance>();
+
+    public virtual ICollection<Attendance> AttendanceTeachers { get; set; } = new List<Attendance>();
 
     public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
 
-    public virtual ICollection<DisciplineReport> DisciplineReports { get; set; } = new List<DisciplineReport>();
+    public virtual ICollection<DisciplineReport> DisciplineReportStudents { get; set; } = new List<DisciplineReport>();
+
+    public virtual ICollection<DisciplineReport> DisciplineReportTeachers { get; set; } = new List<DisciplineReport>();
 
     public virtual School? School { get; set; }
+
+    public virtual ICollection<StudentActivityScore> StudentActivityScores { get; set; } = new List<StudentActivityScore>();
 
     public virtual ICollection<StudentAssignment> StudentAssignments { get; set; } = new List<StudentAssignment>();
 

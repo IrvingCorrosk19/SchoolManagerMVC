@@ -22,25 +22,17 @@ namespace SchoolManager.Services
 
         public async Task<ActivityDto> CreateAsync(ActivityCreateDto dto)
         {
-            // TeacherAssignment ➜ SubjectAssignment ➜ Group + Subject
-            var ta = await _context.TeacherAssignments
-                .Include(ta => ta.SubjectAssignment)
-                    .ThenInclude(sa => sa.Group)
-                .Include(ta => ta.SubjectAssignment)
-                    .ThenInclude(sa => sa.Subject)
-                .FirstOrDefaultAsync(ta => ta.Id == dto.TeacherAssignmentId)
-                ?? throw new InvalidOperationException("Asignación docente no encontrada.");
-
             var activity = new Activity
             {
                 Id = Guid.NewGuid(),
                 Name = dto.Name,
                 Type = dto.Type,          // 'tarea' | 'parcial' | 'examen'
                 Trimester = dto.TrimesterCode, // '1T' | '2T' | '3T'
-                TeacherId = ta.TeacherId,
-                SubjectId = ta.SubjectAssignment.SubjectId,
-                GroupId = ta.SubjectAssignment.GroupId,
-                CreatedAt = DateTime.UtcNow
+                TeacherId = dto.TeacherId,
+                SubjectId = dto.SubjectId,
+                GroupId = dto.GroupId,
+                GradeLevelId = dto.GradeLevelId,
+                CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified)
             };
 
             if (dto.Pdf != null)
@@ -53,8 +45,8 @@ namespace SchoolManager.Services
             _context.Activities.Add(activity);
             await _context.SaveChangesAsync();
 
-            var group = ta.SubjectAssignment.Group;
-            var subject = ta.SubjectAssignment.Subject;
+            var subject = await _context.Subjects.FindAsync(dto.SubjectId);
+            var group = await _context.Groups.FindAsync(dto.GroupId);
 
             return new ActivityDto
             {
@@ -63,8 +55,8 @@ namespace SchoolManager.Services
                 Type = activity.Type,
                 Date = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified),
                 TrimesterCode = activity.Trimester,
-                SubjectName = subject.Name,
-                GroupDisplayName = $"{group.Grade} – {group.Name}",
+                SubjectName = subject?.Name ?? string.Empty,
+                GroupDisplayName = group != null ? $"{group.Grade} – {group.Name}" : string.Empty,
                 PdfUrl = activity.PdfUrl
             };
         }
@@ -84,7 +76,8 @@ namespace SchoolManager.Services
                     Name = a.Name,
                     Type = a.Type,
                     Date = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified),
-                    HasPdf = a.PdfUrl != null
+                    HasPdf = a.PdfUrl != null,
+                    PdfUrl = a.PdfUrl
                 })
                 .ToListAsync();
         }
@@ -101,7 +94,7 @@ namespace SchoolManager.Services
         }
 
         /* ────────────────────────────────────────
-           2.  CRUD “legacy” que aún usa tu proyecto
+           2.  CRUD "legacy" que aún usa tu proyecto
            ────────────────────────────────────────*/
 
         public async Task<List<Activity>> GetAllAsync() =>

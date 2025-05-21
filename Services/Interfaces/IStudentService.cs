@@ -10,4 +10,5 @@ public interface IStudentService
     Task DeleteAsync(Guid id);
     Task<List<Student>> GetByGroupAsync(string groupName);
     Task<IEnumerable<StudentBasicDto>> GetByGroupAndGradeAsync(Guid groupId, Guid gradeId);
+    Task<IEnumerable<StudentBasicDto>> GetBySubjectGroupAndGradeAsync(Guid subjectId, Guid groupId, Guid gradeId);
 }

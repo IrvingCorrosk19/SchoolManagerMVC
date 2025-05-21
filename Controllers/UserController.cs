@@ -4,7 +4,9 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using SchoolManager.Enums;
 using SchoolManager.Models;
 using SchoolManager.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 
+[Authorize(Roles = "admin")]
 public class UserController : Controller
 {
     private readonly IUserService _userService;
@@ -40,7 +42,8 @@ public class UserController : Controller
             Role = model.Role.ToLower(),
             Status = model.Status,
             CreatedAt = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified),
-            PasswordHash = model.PasswordHash ?? "123456"
+            PasswordHash = model.PasswordHash ?? "123456",
+            DateOfBirth = DateTime.SpecifyKind(DateTime.UtcNow, DateTimeKind.Unspecified),
         };
 
         await _userService.CreateAsync(user, model.Subjects, model.Groups);
@@ -123,6 +126,7 @@ public class UserController : Controller
             user.PasswordHash,
             Role = char.ToUpper(user.Role[0]) + user.Role.Substring(1).ToLower(),
             user.Status,
+            user.DateOfBirth,
             Subjects = user.Subjects.Select(s => s.Id),
             Groups = user.Groups.Select(g => g.Id)
         };
@@ -146,6 +150,7 @@ public class UserController : Controller
         existingUser.DocumentId = model.DocumentId;
         existingUser.Role = model.Role.ToLower();
         existingUser.Status = model.Status;
+        existingUser.DateOfBirth = model.DateOfBirth;
 
         if (!string.IsNullOrEmpty(model.PasswordHash))
         {

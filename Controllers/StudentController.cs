@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using SchoolManager.Models;
+using Microsoft.AspNetCore.Authorization;
 
+[Authorize(Roles = "student,estudiante")]
 public class StudentController : Controller
 {
     private readonly IStudentService _studentService;
